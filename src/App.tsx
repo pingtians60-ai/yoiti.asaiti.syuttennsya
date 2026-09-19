@@ -301,7 +301,7 @@ export function App() {
   }, [isAllEvent, activeTab]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-black">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-amber-500 selection:text-black transition-colors duration-200">
       {/* 管理者グローバルヘッダー */}
       <Header
         event={event}

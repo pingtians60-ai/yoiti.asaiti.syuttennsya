@@ -457,8 +457,8 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
               onClick={() => setKanaRow(group)}
               className={`px-2 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap border ${
                 kanaRow === group
-                  ? 'bg-amber-400/20 text-amber-300 border-amber-400/50 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 bg-slate-800/60 border-slate-800 hover:bg-slate-800'
+                  ? 'bg-amber-400/25 text-amber-800 dark:text-amber-300 border-amber-500/50 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800/60 border-slate-300 dark:border-slate-800'
               }`}
             >
               {group === 'ALL' ? 'すべて' : group.replace('行', '')}
@@ -733,12 +733,12 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                     <div className="flex items-center justify-between pb-2 border-b border-amber-500/30">
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block animate-pulse" />
-                        <h3 className="text-sm font-bold text-amber-300 flex items-center gap-1.5">
-                          <Store className="w-4 h-4 text-amber-400" />
+                        <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                          <Store className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                           <span>本イベント出店登録店舗 ({registeredVendors.length}件)</span>
                         </h3>
                       </div>
-                      <span className="text-xs text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">
+                      <span className="text-xs text-amber-800 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">
                         出店登録済・五十音順
                       </span>
                     </div>
