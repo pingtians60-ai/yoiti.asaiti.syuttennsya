@@ -16,6 +16,7 @@ export interface ColumnMapping {
   boothAreaCol: number;     // 出店内容
   powerOptionCol: number;   // 電源希望
   powerWattsCol: number;    // 電源W数
+  tentOptionCol: number;    // テント希望
   garbageOptionCol: number; // ゴミ回収希望
   notesCol: number;         // 備考・要望
 }
@@ -196,6 +197,7 @@ export function detectColumnMapping(headers: string[]): ColumnMapping {
     boothAreaCol: -1,
     powerOptionCol: -1,
     powerWattsCol: -1,
+    tentOptionCol: -1,
     garbageOptionCol: -1,
     notesCol: -1,
   };
@@ -262,6 +264,10 @@ export function detectColumnMapping(headers: string[]): ColumnMapping {
     // 電源W数
     else if (mapping.powerWattsCol === -1 && /w数|ワット|消費電力/.test(header)) {
       mapping.powerWattsCol = idx;
+    }
+    // テントレンタル
+    else if (mapping.tentOptionCol === -1 && /テント|タープ|張り/.test(header)) {
+      mapping.tentOptionCol = idx;
     }
     // ゴミ
     else if (mapping.garbageOptionCol === -1 && /ゴミ|ごみ|廃棄/.test(header)) {
@@ -388,6 +394,12 @@ export function buildVendorsAndEntriesFromSheet(
     const garbageVal = getVal(mapping.garbageOptionCol).toLowerCase();
     const garbageOption = /希望|あり|有|必要|はい|yes/.test(garbageVal);
 
+    // テントレンタル判定
+    const tentVal = getVal(mapping.tentOptionCol).toLowerCase();
+    const tentOption = /希望|あり|有|必要|はい|yes|1張|2張/.test(tentVal);
+    const tentCount = /2/.test(tentVal) ? 2 : (tentOption ? 1 : 0);
+    const tentFee = tentCount === 2 ? 5000 : (tentOption ? 3000 : 0);
+
     // 出禁・要注意判定
     let status: Vendor['status'] = 'active';
     let statusReason = '';
@@ -404,7 +416,7 @@ export function buildVendorsAndEntriesFromSheet(
     const baseFee = areaDef?.defaultBaseFee || (boothArea === 'KITCHEN_CAR' ? 12000 : boothArea === 'FOOD_STALL' ? 8000 : 5000);
     const powerFee = powerOption ? 1500 : 0;
     const garbageFee = garbageOption ? 500 : 0;
-    const totalAmount = baseFee + powerFee + garbageFee;
+    const totalAmount = baseFee + powerFee + tentFee + garbageFee;
 
     // 既存ベンダーとの突合（電話番号一致または完全一致する屋号）
     const cleanPhone = phone.replace(/[^0-9]/g, '');
@@ -461,6 +473,9 @@ export function buildVendorsAndEntriesFromSheet(
         powerOption,
         powerFee,
         powerWatts,
+        tentOption,
+        tentCount,
+        tentFee,
         garbageOption,
         garbageFee,
         equipmentRentalFee: 0,

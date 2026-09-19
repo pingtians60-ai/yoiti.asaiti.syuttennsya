@@ -22,7 +22,8 @@ import {
   Store,
   Eye,
   ExternalLink,
-  Building2
+  Building2,
+  Tent
 } from 'lucide-react';
 import { EventEntry, NightMarketEvent, Vendor, BoothArea, PaymentStatus, isVendorOrganization } from '../../types';
 import { Instagram, getInstagramUrl, getInstagramHandle, InstagramBadge } from '../../utils/instagram';
@@ -84,6 +85,10 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
       '基本料金',
       '電源利用',
       '電源料',
+      '電源W数',
+      'テント利用',
+      'テント料',
+      'テント張り数',
       'ゴミ回収料',
       '備品レンタル',
       '割引',
@@ -102,6 +107,10 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
       e.fee.baseFee,
       e.fee.powerOption ? 'あり' : 'なし',
       e.fee.powerFee,
+      e.fee.powerWatts || (e.fee.powerOption ? 1500 : 0),
+      e.fee.tentOption ? 'あり' : 'なし',
+      e.fee.tentFee || 0,
+      e.fee.tentCount || (e.fee.tentOption ? 1 : 0),
       e.fee.garbageFee,
       e.fee.equipmentRentalFee,
       e.fee.discount,
@@ -126,6 +135,7 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
     const total = 
       (Number(fee.baseFee) || 0) + 
       (fee.powerOption ? (Number(fee.powerFee) || 0) : 0) + 
+      (fee.tentOption ? (Number(fee.tentFee) || 0) : 0) + 
       (fee.garbageOption ? (Number(fee.garbageFee) || 0) : 0) + 
       (Number(fee.equipmentRentalFee) || 0) - 
       (Number(fee.discount) || 0);
@@ -428,12 +438,18 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
                     <td className="py-3 px-4 whitespace-nowrap">
                       <div className="space-y-0.5 text-[11px]">
                         {entry.fee.powerOption ? (
-                          <div className="flex items-center gap-1 text-amber-400">
-                            <Zap className="w-3 h-3" />
+                          <div className="flex items-center gap-1 text-amber-400 font-medium">
+                            <Zap className="w-3 h-3 text-amber-400 shrink-0" />
                             <span>電源: +¥{entry.fee.powerFee.toLocaleString()} ({entry.fee.powerWatts || 1500}W)</span>
                           </div>
                         ) : (
-                          <span className="text-slate-500">電源なし</span>
+                          <span className="text-slate-500 block">電源なし</span>
+                        )}
+                        {entry.fee.tentOption && (
+                          <div className="flex items-center gap-1 text-sky-400 font-medium">
+                            <Tent className="w-3 h-3 text-sky-400 shrink-0" />
+                            <span>テント: +¥{(entry.fee.tentFee || 3000).toLocaleString()} ({entry.fee.tentCount || 1}張)</span>
+                          </div>
                         )}
                         {entry.fee.garbageOption && (
                           <div className="text-slate-400">
@@ -778,35 +794,208 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
                 </div>
 
                 {/* 電源オプション */}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-700/60">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editingEntry.fee.powerOption}
-                      onChange={(e) => setEditingEntry({
-                        ...editingEntry,
-                        fee: recalculateFee({
-                          ...editingEntry.fee,
-                          powerOption: e.target.checked,
-                          powerFee: e.target.checked ? (editingEntry.fee.powerFee || 1500) : 0
-                        })
-                      })}
-                      className="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-0"
-                    />
-                    <span className="text-slate-300 font-semibold">電源オプション利用</span>
-                  </label>
-                  {editingEntry.fee.powerOption && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-400">料金: ¥</span>
+                <div className="pt-2 border-t border-slate-700/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
-                        type="number"
-                        value={editingEntry.fee.powerFee}
-                        onChange={(e) => setEditingEntry({
-                          ...editingEntry,
-                          fee: recalculateFee({ ...editingEntry.fee, powerFee: Number(e.target.value) })
-                        })}
-                        className="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-mono"
+                        type="checkbox"
+                        checked={editingEntry.fee.powerOption}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setEditingEntry({
+                            ...editingEntry,
+                            fee: recalculateFee({
+                              ...editingEntry.fee,
+                              powerOption: checked,
+                              powerFee: checked ? (editingEntry.fee.powerFee || 1500) : 0,
+                              powerWatts: checked ? (editingEntry.fee.powerWatts || 1500) : 0
+                            })
+                          });
+                        }}
+                        className="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0"
                       />
+                      <span className="text-slate-200 font-bold flex items-center gap-1.5">
+                        <Zap className="w-4 h-4 text-amber-400" />
+                        電源レンタル
+                      </span>
+                    </label>
+                    {editingEntry.fee.powerOption && (
+                      <span className="text-amber-400 font-mono font-bold text-xs">
+                        +¥{(editingEntry.fee.powerFee || 0).toLocaleString()} ({editingEntry.fee.powerWatts || 1500}W)
+                      </span>
+                    )}
+                  </div>
+
+                  {editingEntry.fee.powerOption && (
+                    <div className="bg-slate-900/90 p-3 rounded-lg border border-amber-500/30 space-y-2.5">
+                      <div>
+                        <div className="text-[11px] text-slate-400 mb-1.5 font-medium">レンタル費用のプリセット選択:</div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {[
+                            { watts: 500, fee: 1000, label: '500W (¥1,000)' },
+                            { watts: 1000, fee: 1500, label: '1000W (¥1,500)' },
+                            { watts: 1500, fee: 2000, label: '1500W (¥2,000)' }
+                          ].map((preset) => (
+                            <button
+                              key={preset.watts}
+                              type="button"
+                              onClick={() => setEditingEntry({
+                                ...editingEntry,
+                                fee: recalculateFee({
+                                  ...editingEntry.fee,
+                                  powerFee: preset.fee,
+                                  powerWatts: preset.watts
+                                })
+                              })}
+                              className={`px-2 py-1.5 rounded text-[11px] font-bold border transition ${
+                                editingEntry.fee.powerFee === preset.fee && editingEntry.fee.powerWatts === preset.watts
+                                  ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-sm'
+                                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+                        <div>
+                          <label className="block text-[10px] text-slate-400 mb-0.5">電源利用料 (手入力)</label>
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-400 text-xs">¥</span>
+                            <input
+                              type="number"
+                              step={100}
+                              value={editingEntry.fee.powerFee}
+                              onChange={(e) => setEditingEntry({
+                                ...editingEntry,
+                                fee: recalculateFee({ ...editingEntry.fee, powerFee: Number(e.target.value) })
+                              })}
+                              className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-mono text-xs"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-slate-400 mb-0.5">使用容量 (W数)</label>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              step={100}
+                              value={editingEntry.fee.powerWatts || 1500}
+                              onChange={(e) => setEditingEntry({
+                                ...editingEntry,
+                                fee: { ...editingEntry.fee, powerWatts: Number(e.target.value) }
+                              })}
+                              className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-mono text-xs"
+                            />
+                            <span className="text-slate-400 text-xs">W</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* テントレンタルオプション */}
+                <div className="pt-2 border-t border-slate-700/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(editingEntry.fee.tentOption)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setEditingEntry({
+                            ...editingEntry,
+                            fee: recalculateFee({
+                              ...editingEntry.fee,
+                              tentOption: checked,
+                              tentFee: checked ? (editingEntry.fee.tentFee || 3000) : 0,
+                              tentCount: checked ? (editingEntry.fee.tentCount || 1) : 0
+                            })
+                          });
+                        }}
+                        className="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0"
+                      />
+                      <span className="text-slate-200 font-bold flex items-center gap-1.5">
+                        <Tent className="w-4 h-4 text-sky-400" />
+                        テントレンタル
+                      </span>
+                    </label>
+                    {editingEntry.fee.tentOption && (
+                      <span className="text-sky-400 font-mono font-bold text-xs">
+                        +¥{(editingEntry.fee.tentFee || 0).toLocaleString()} ({editingEntry.fee.tentCount || 1}張)
+                      </span>
+                    )}
+                  </div>
+
+                  {editingEntry.fee.tentOption && (
+                    <div className="bg-slate-900/90 p-3 rounded-lg border border-sky-500/30 space-y-2.5">
+                      <div>
+                        <div className="text-[11px] text-slate-400 mb-1.5 font-medium">レンタル費用のプリセット選択:</div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {[
+                            { count: 1, fee: 3000, label: '1張り (¥3,000)' },
+                            { count: 2, fee: 5000, label: '2張り (¥5,000)' },
+                            { count: 3, fee: 7000, label: '3張り (¥7,000)' }
+                          ].map((preset) => (
+                            <button
+                              key={preset.count}
+                              type="button"
+                              onClick={() => setEditingEntry({
+                                ...editingEntry,
+                                fee: recalculateFee({
+                                  ...editingEntry.fee,
+                                  tentFee: preset.fee,
+                                  tentCount: preset.count
+                                })
+                              })}
+                              className={`px-2 py-1.5 rounded text-[11px] font-bold border transition ${
+                                editingEntry.fee.tentFee === preset.fee && editingEntry.fee.tentCount === preset.count
+                                  ? 'bg-sky-500 text-slate-950 border-sky-400 font-black shadow-sm'
+                                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+                        <div>
+                          <label className="block text-[10px] text-slate-400 mb-0.5">テントレンタル料 (手入力)</label>
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-400 text-xs">¥</span>
+                            <input
+                              type="number"
+                              step={500}
+                              value={editingEntry.fee.tentFee || 0}
+                              onChange={(e) => setEditingEntry({
+                                ...editingEntry,
+                                fee: recalculateFee({ ...editingEntry.fee, tentFee: Number(e.target.value) })
+                              })}
+                              className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-mono text-xs"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-slate-400 mb-0.5">レンタル張り数</label>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min={1}
+                              max={10}
+                              value={editingEntry.fee.tentCount || 1}
+                              onChange={(e) => setEditingEntry({
+                                ...editingEntry,
+                                fee: { ...editingEntry.fee, tentCount: Number(e.target.value) }
+                              })}
+                              className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-mono text-xs"
+                            />
+                            <span className="text-slate-400 text-xs">張</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1061,14 +1250,20 @@ const NewBoothModal: React.FC<NewBoothModalProps> = ({
   const [boothArea, setBoothArea] = useState<BoothArea>('OUTDOOR');
   const [boothNumber, setBoothNumber] = useState(`O-0${existingEntries.length + 1}`);
   const [powerOption, setPowerOption] = useState(false);
+  const [powerWatts, setPowerWatts] = useState<number>(1500);
+  const [powerFeeInput, setPowerFeeInput] = useState<number>(1500);
+  const [tentOption, setTentOption] = useState<boolean>(false);
+  const [tentCount, setTentCount] = useState<number>(1);
+  const [tentFeeInput, setTentFeeInput] = useState<number>(3000);
   const [garbageOption, setGarbageOption] = useState(true);
 
   const selectedVendor = vendors.find((v) => v.id === selectedVendorId);
   const areaDef = event.areas.find((a) => a.code === boothArea);
   const baseFee = areaDef?.defaultBaseFee || 6000;
-  const powerFee = powerOption ? 1500 : 0;
+  const powerFee = powerOption ? powerFeeInput : 0;
+  const tentFee = tentOption ? tentFeeInput : 0;
   const garbageFee = garbageOption ? 500 : 0;
-  const totalAmount = baseFee + powerFee + garbageFee;
+  const totalAmount = baseFee + powerFee + tentFee + garbageFee;
 
   const isBanned = selectedVendor?.status === 'banned';
   const isWarning = selectedVendor?.status === 'warning';
@@ -1094,7 +1289,10 @@ const NewBoothModal: React.FC<NewBoothModalProps> = ({
         baseFee,
         powerOption,
         powerFee,
-        powerWatts: powerOption ? 1000 : 0,
+        powerWatts: powerOption ? powerWatts : 0,
+        tentOption,
+        tentCount: tentOption ? tentCount : 0,
+        tentFee,
         garbageOption,
         garbageFee,
         equipmentRentalFee: 0,
@@ -1137,7 +1335,7 @@ const NewBoothModal: React.FC<NewBoothModalProps> = ({
           <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
         </div>
 
-        <div className="p-6 space-y-4 text-xs">
+        <div className="p-6 space-y-4 text-xs max-h-[80vh] overflow-y-auto">
           {/* 出店者選択 */}
           <div>
             <label className="block text-slate-400 mb-1 font-semibold">出店者（マスター名簿から選択）</label>
@@ -1205,28 +1403,164 @@ const NewBoothModal: React.FC<NewBoothModalProps> = ({
           </div>
 
           {/* オプション選択 */}
-          <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700/60 space-y-2">
-            <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-slate-300">電源利用 (+¥1,500)</span>
-              <input
-                type="checkbox"
-                checked={powerOption}
-                onChange={(e) => setPowerOption(e.target.checked)}
-                className="rounded bg-slate-800 border-slate-700 text-emerald-500"
-              />
-            </label>
-            <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-slate-300">ゴミ回収オプション (+¥500)</span>
-              <input
-                type="checkbox"
-                checked={garbageOption}
-                onChange={(e) => setGarbageOption(e.target.checked)}
-                className="rounded bg-slate-800 border-slate-700 text-emerald-500"
-              />
-            </label>
+          <div className="bg-slate-800/50 p-3.5 rounded-xl border border-slate-700/60 space-y-3">
+            {/* 電源利用 */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={powerOption}
+                    onChange={(e) => setPowerOption(e.target.checked)}
+                    className="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0"
+                  />
+                  <span className="text-slate-200 font-bold flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    電源レンタル利用
+                  </span>
+                </label>
+                {powerOption && (
+                  <span className="text-amber-400 font-mono font-bold">
+                    +¥{powerFeeInput.toLocaleString()} ({powerWatts}W)
+                  </span>
+                )}
+              </div>
+
+              {powerOption && (
+                <div className="bg-slate-900/80 p-2.5 rounded-lg border border-amber-500/30 space-y-2">
+                  <div className="grid grid-cols-3 gap-1">
+                    {[
+                      { watts: 500, fee: 1000, label: '500W: ¥1,000' },
+                      { watts: 1000, fee: 1500, label: '1000W: ¥1,500' },
+                      { watts: 1500, fee: 2000, label: '1500W: ¥2,000' }
+                    ].map((preset) => (
+                      <button
+                        key={preset.watts}
+                        type="button"
+                        onClick={() => {
+                          setPowerWatts(preset.watts);
+                          setPowerFeeInput(preset.fee);
+                        }}
+                        className={`px-1.5 py-1 rounded text-[10px] font-bold border transition ${
+                          powerFeeInput === preset.fee && powerWatts === preset.watts
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 font-black'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 border-t border-slate-800 text-[11px]">
+                    <span className="text-slate-400">料金直接入力: ¥</span>
+                    <input
+                      type="number"
+                      step={100}
+                      value={powerFeeInput}
+                      onChange={(e) => setPowerFeeInput(Number(e.target.value))}
+                      className="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-white font-mono"
+                    />
+                    <span className="text-slate-400 ml-auto">容量:</span>
+                    <input
+                      type="number"
+                      step={100}
+                      value={powerWatts}
+                      onChange={(e) => setPowerWatts(Number(e.target.value))}
+                      className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-white font-mono"
+                    />
+                    <span className="text-slate-400">W</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* テント利用 */}
+            <div className="space-y-2 pt-2 border-t border-slate-700/60">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={tentOption}
+                    onChange={(e) => setTentOption(e.target.checked)}
+                    className="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0"
+                  />
+                  <span className="text-slate-200 font-bold flex items-center gap-1.5">
+                    <Tent className="w-3.5 h-3.5 text-sky-400" />
+                    テントレンタル利用
+                  </span>
+                </label>
+                {tentOption && (
+                  <span className="text-sky-400 font-mono font-bold">
+                    +¥{tentFeeInput.toLocaleString()} ({tentCount}張)
+                  </span>
+                )}
+              </div>
+
+              {tentOption && (
+                <div className="bg-slate-900/80 p-2.5 rounded-lg border border-sky-500/30 space-y-2">
+                  <div className="grid grid-cols-3 gap-1">
+                    {[
+                      { count: 1, fee: 3000, label: '1張: ¥3,000' },
+                      { count: 2, fee: 5000, label: '2張: ¥5,000' },
+                      { count: 3, fee: 7000, label: '3張: ¥7,000' }
+                    ].map((preset) => (
+                      <button
+                        key={preset.count}
+                        type="button"
+                        onClick={() => {
+                          setTentCount(preset.count);
+                          setTentFeeInput(preset.fee);
+                        }}
+                        className={`px-1.5 py-1 rounded text-[10px] font-bold border transition ${
+                          tentFeeInput === preset.fee && tentCount === preset.count
+                            ? 'bg-sky-500 text-slate-950 border-sky-400 font-black'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 border-t border-slate-800 text-[11px]">
+                    <span className="text-slate-400">料金直接入力: ¥</span>
+                    <input
+                      type="number"
+                      step={500}
+                      value={tentFeeInput}
+                      onChange={(e) => setTentFeeInput(Number(e.target.value))}
+                      className="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-white font-mono"
+                    />
+                    <span className="text-slate-400 ml-auto">張り数:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={tentCount}
+                      onChange={(e) => setTentCount(Number(e.target.value))}
+                      className="w-14 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-white font-mono"
+                    />
+                    <span className="text-slate-400">張</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ゴミ回収 */}
+            <div className="pt-2 border-t border-slate-700/60">
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="text-slate-300">ゴミ回収オプション (+¥500)</span>
+                <input
+                  type="checkbox"
+                  checked={garbageOption}
+                  onChange={(e) => setGarbageOption(e.target.checked)}
+                  className="rounded bg-slate-800 border-slate-700 text-emerald-500"
+                />
+              </label>
+            </div>
+
             <div className="pt-2 border-t border-slate-700 flex justify-between font-bold text-sm">
-              <span className="text-slate-300">初期請求額</span>
-              <span className="text-emerald-400 font-mono">¥{totalAmount.toLocaleString()}</span>
+              <span className="text-slate-300">合計請求予定額</span>
+              <span className="text-emerald-400 font-mono text-base font-black">¥{totalAmount.toLocaleString()}</span>
             </div>
           </div>
         </div>

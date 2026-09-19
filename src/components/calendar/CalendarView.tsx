@@ -19,7 +19,9 @@ import {
   Check,
   Award,
   DollarSign,
-  Building2
+  Building2,
+  Tent,
+  Zap
 } from 'lucide-react';
 import { NightMarketEvent, EventEntry, Vendor, BoothArea, PaymentStatus, isVendorOrganization } from '../../types';
 import { STANDARD_AREAS } from '../../utils/storage';
@@ -1417,6 +1419,11 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
   const [boothNumber, setBoothNumber] = useState(`O-0${existingEntries.length + 1}`);
   const [baseFee, setBaseFee] = useState<number>(5000);
   const [powerOption, setPowerOption] = useState(false);
+  const [powerWatts, setPowerWatts] = useState<number>(1500);
+  const [powerFeeInput, setPowerFeeInput] = useState<number>(1500);
+  const [tentOption, setTentOption] = useState<boolean>(false);
+  const [tentCount, setTentCount] = useState<number>(1);
+  const [tentFeeInput, setTentFeeInput] = useState<number>(3000);
   const [garbageOption, setGarbageOption] = useState(true);
 
   const selectedVendor = vendors.find((v) => v.id === selectedVendorId);
@@ -1433,7 +1440,8 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
   const handleAdd = () => {
     if (!selectedVendor) return;
 
-    const powerFee = powerOption ? 1500 : 0;
+    const powerFee = powerOption ? powerFeeInput : 0;
+    const tentFee = tentOption ? tentFeeInput : 0;
     const garbageFee = garbageOption ? 500 : 0;
 
     const newEntry: EventEntry = {
@@ -1447,11 +1455,15 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
         baseFee,
         powerOption,
         powerFee,
+        powerWatts: powerOption ? powerWatts : 0,
+        tentOption,
+        tentCount: tentOption ? tentCount : 0,
+        tentFee,
         garbageOption,
         garbageFee,
         equipmentRentalFee: 0,
         discount: 0,
-        totalAmount: baseFee + powerFee + garbageFee,
+        totalAmount: baseFee + powerFee + tentFee + garbageFee,
         paymentStatus: 'unbilled',
         receiptIssued: false
       },
@@ -1543,18 +1555,123 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
             </div>
           </div>
 
-          <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-700 space-y-2">
-            <span className="font-semibold text-slate-300 block">オプション選択</span>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={powerOption}
-                  onChange={(e) => setPowerOption(e.target.checked)}
-                  className="rounded bg-slate-800 text-amber-500"
-                />
-                <span>電源利用 (+¥1,500)</span>
-              </label>
+          <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-700 space-y-3">
+            <span className="font-semibold text-slate-300 block text-xs">オプション選択</span>
+            
+            {/* 電源利用 */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={powerOption}
+                    onChange={(e) => setPowerOption(e.target.checked)}
+                    className="rounded bg-slate-800 text-amber-500"
+                  />
+                  <span className="text-slate-200 font-bold flex items-center gap-1">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    電源利用
+                  </span>
+                </label>
+                {powerOption && (
+                  <span className="text-amber-400 font-mono text-xs font-bold">
+                    +¥{powerFeeInput.toLocaleString()} ({powerWatts}W)
+                  </span>
+                )}
+              </div>
+              {powerOption && (
+                <div className="flex items-center gap-1.5 pl-5 text-xs">
+                  {[
+                    { watts: 500, fee: 1000 },
+                    { watts: 1000, fee: 1500 },
+                    { watts: 1500, fee: 2000 }
+                  ].map((p) => (
+                    <button
+                      key={p.watts}
+                      type="button"
+                      onClick={() => {
+                        setPowerWatts(p.watts);
+                        setPowerFeeInput(p.fee);
+                      }}
+                      className={`px-2 py-0.5 rounded border text-[10px] font-bold ${
+                        powerFeeInput === p.fee && powerWatts === p.watts
+                          ? 'bg-amber-500 text-slate-950 border-amber-400 font-black'
+                          : 'bg-slate-800 text-slate-300 border-slate-700'
+                      }`}
+                    >
+                      {p.watts}W ¥{p.fee.toLocaleString()}
+                    </button>
+                  ))}
+                  <input
+                    type="number"
+                    step={100}
+                    value={powerFeeInput}
+                    onChange={(e) => setPowerFeeInput(Number(e.target.value))}
+                    className="w-16 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono text-[11px]"
+                    placeholder="¥"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* テント利用 */}
+            <div className="space-y-1.5 pt-2 border-t border-slate-700/60">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={tentOption}
+                    onChange={(e) => setTentOption(e.target.checked)}
+                    className="rounded bg-slate-800 text-sky-500"
+                  />
+                  <span className="text-slate-200 font-bold flex items-center gap-1">
+                    <Tent className="w-3.5 h-3.5 text-sky-400" />
+                    テントレンタル
+                  </span>
+                </label>
+                {tentOption && (
+                  <span className="text-sky-400 font-mono text-xs font-bold">
+                    +¥{tentFeeInput.toLocaleString()} ({tentCount}張)
+                  </span>
+                )}
+              </div>
+              {tentOption && (
+                <div className="flex items-center gap-1.5 pl-5 text-xs">
+                  {[
+                    { count: 1, fee: 3000 },
+                    { count: 2, fee: 5000 },
+                    { count: 3, fee: 7000 }
+                  ].map((p) => (
+                    <button
+                      key={p.count}
+                      type="button"
+                      onClick={() => {
+                        setTentCount(p.count);
+                        setTentFeeInput(p.fee);
+                      }}
+                      className={`px-2 py-0.5 rounded border text-[10px] font-bold ${
+                        tentFeeInput === p.fee && tentCount === p.count
+                          ? 'bg-sky-500 text-slate-950 border-sky-400 font-black'
+                          : 'bg-slate-800 text-slate-300 border-slate-700'
+                      }`}
+                    >
+                      {p.count}張 ¥{p.fee.toLocaleString()}
+                    </button>
+                  ))}
+                  <input
+                    type="number"
+                    step={500}
+                    value={tentFeeInput}
+                    onChange={(e) => setTentFeeInput(Number(e.target.value))}
+                    className="w-16 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono text-[11px]"
+                    placeholder="¥"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* ゴミ回収 */}
+            <div className="pt-2 border-t border-slate-700/60">
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="checkbox"
@@ -1562,8 +1679,16 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
                   onChange={(e) => setGarbageOption(e.target.checked)}
                   className="rounded bg-slate-800 text-emerald-500"
                 />
-                <span>ゴミ回収 (+¥500)</span>
+                <span className="text-xs text-slate-300">ゴミ回収 (+¥500)</span>
               </label>
+            </div>
+
+            {/* 合計請求額 */}
+            <div className="pt-2 border-t border-slate-700 flex justify-between items-center text-xs font-bold">
+              <span className="text-slate-300">合計請求額:</span>
+              <span className="text-emerald-400 font-mono text-sm font-black">
+                ¥{(baseFee + (powerOption ? powerFeeInput : 0) + (tentOption ? tentFeeInput : 0) + (garbageOption ? 500 : 0)).toLocaleString()}
+              </span>
             </div>
           </div>
         </div>

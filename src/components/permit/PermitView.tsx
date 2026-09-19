@@ -306,19 +306,21 @@ export const PermitView: React.FC<PermitViewProps> = ({
 
                   {/* 電源・設備ステータス */}
                   <div className={`p-3 rounded-xl border-2 flex items-center gap-3 ${
-                    entry.fee.powerOption
+                    entry.fee.powerOption || entry.fee.tentOption
                       ? 'bg-amber-50 border-amber-500 text-amber-950'
                       : 'bg-slate-50 border-slate-300 text-slate-700'
                   }`}>
-                    <div className={`p-2 rounded-lg ${entry.fee.powerOption ? 'bg-amber-500 text-slate-950' : 'bg-slate-300 text-slate-700'}`}>
+                    <div className={`p-2 rounded-lg ${entry.fee.powerOption || entry.fee.tentOption ? 'bg-amber-500 text-slate-950' : 'bg-slate-300 text-slate-700'}`}>
                       <Zap className="w-5 h-5" />
                     </div>
                     <div>
                       <div className="text-xs font-bold">
                         {entry.fee.powerOption ? `電源使用許可 (${entry.fee.powerWatts || 1500}W)` : '電源利用なし'}
+                        {entry.fee.tentOption && ` / テント貸出 (${entry.fee.tentCount || 1}張り)`}
                       </div>
                       <div className="text-[11px] text-slate-600">
                         {entry.fee.garbageOption ? 'ゴミ回収サービス込' : 'ゴミ全量各自持ち帰り'}
+                        {entry.fee.equipmentRentalFee > 0 && ' ・その他備品貸出あり'}
                       </div>
                     </div>
                   </div>
