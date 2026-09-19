@@ -3,6 +3,7 @@ import { Edit3, Building2, Store, Sparkles, Trash2 } from 'lucide-react';
 import { Vendor } from '../../types';
 import { Instagram } from '../../utils/instagram';
 import { inspectVendorWithAi, VendorAiInspectionResult } from '../../utils/gemini';
+import { inferReadingOffline, inferVendorReadingWithAi } from '../../utils/aiNameReading';
 
 export interface VendorEditModalProps {
   vendor: Vendor;
@@ -21,9 +22,11 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<Vendor>({ 
     ...vendor,
+    readingFurigana: vendor.readingFurigana || inferReadingOffline(vendor.name || ''),
     organizationType: vendor.organizationType || (vendor.tags?.some(t => /団体|振興会|サークル|NPO|実行委/.test(t)) ? 'organization' : 'store')
   });
   const [isAiChecking, setIsAiChecking] = useState(false);
+  const [isAiInferringReading, setIsAiInferringReading] = useState(false);
   const [aiInspection, setAiInspection] = useState<VendorAiInspectionResult | null>(null);
 
   const isBanned = formData.status === 'banned';
@@ -35,7 +38,11 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
       alert('屋号・店名を入力してください。');
       return;
     }
-    onSave(formData);
+    const finalReading = formData.readingFurigana?.trim() || inferReadingOffline(formData.name);
+    onSave({
+      ...formData,
+      readingFurigana: finalReading
+    });
   };
 
   return (
@@ -115,26 +122,84 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
             </div>
 
             {/* 基本情報 */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-slate-400 mb-1 font-semibold">屋号・店名 <span className="text-rose-400">*</span></label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold"
-                  required
-                />
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold">屋号・店名 <span className="text-rose-400">*</span></label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => {
+                      const newName = e.target.value;
+                      const autoReading = inferReadingOffline(newName);
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        name: newName,
+                        readingFurigana: prev.readingFurigana || autoReading
+                      }));
+                    }}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold"
+                    placeholder="例: 極旨たこ焼き 蛸源"
+                    required
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-slate-400 font-semibold flex items-center gap-1">
+                      <span>五十音読み (あいうえお順用)</span>
+                    </label>
+                    <button
+                      type="button"
+                      disabled={isAiInferringReading || !formData.name}
+                      onClick={async () => {
+                        if (!formData.name) return;
+                        setIsAiInferringReading(true);
+                        try {
+                          const aiReading = await inferVendorReadingWithAi(formData.name);
+                          setFormData(prev => ({ ...prev, readingFurigana: aiReading }));
+                        } finally {
+                          setIsAiInferringReading(false);
+                        }
+                      }}
+                      className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-0.5 hover:underline disabled:opacity-50 cursor-pointer"
+                      title="AIが店名の修飾語を判断し、五十音ソート用の読みを自動判定します"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span>{isAiInferringReading ? '判定中...' : '✨AIで自動判定'}</span>
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={formData.readingFurigana || ''}
+                    onChange={(e) => setFormData({ ...formData, readingFurigana: e.target.value })}
+                    placeholder="例: たこげん、べんけい"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono placeholder-slate-500"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-slate-400 mb-1 font-semibold">代表者氏名 <span className="text-rose-400">*</span></label>
-                <input
-                  type="text"
-                  value={formData.ownerName}
-                  onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                  required
-                />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold">代表者氏名 <span className="text-rose-400">*</span></label>
+                  <input
+                    type="text"
+                    value={formData.ownerName}
+                    onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                    placeholder="例: 田中 太郎"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold">代表者フリガナ</label>
+                  <input
+                    type="text"
+                    value={formData.furigana || ''}
+                    onChange={(e) => setFormData({ ...formData, furigana: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                    placeholder="例: タナカ タロウ"
+                  />
+                </div>
               </div>
             </div>
 

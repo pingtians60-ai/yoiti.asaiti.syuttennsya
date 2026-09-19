@@ -27,6 +27,7 @@ export const initialVendors: Vendor[] = [
   {
     id: 'v-001',
     name: '黒潮炭火焼き鳥 弁慶',
+    readingFurigana: 'べんけい',
     ownerName: '山本 健一',
     furigana: 'ヤマモト ケンイチ',
     phone: '080-9876-1111',
@@ -49,6 +50,7 @@ export const initialVendors: Vendor[] = [
   {
     id: 'v-002',
     name: '極旨たこ焼き 蛸源',
+    readingFurigana: 'たこげん',
     ownerName: '田中 誠一郎',
     furigana: 'タナカ セイイチロウ',
     phone: '090-3344-5566',
@@ -70,6 +72,7 @@ export const initialVendors: Vendor[] = [
   {
     id: 'v-003',
     name: 'Nanairo クレープ＆タピオカ',
+    readingFurigana: 'なないろ',
     ownerName: '佐々木 萌香',
     furigana: 'ササキ モエカ',
     phone: '080-2211-9988',
@@ -91,6 +94,7 @@ export const initialVendors: Vendor[] = [
   {
     id: 'v-004',
     name: '南紀レモネード STAND',
+    readingFurigana: 'なんきれもねーど',
     ownerName: '林 翔太',
     furigana: 'ハヤシ ショウタ',
     phone: '070-5555-1234',
@@ -112,6 +116,7 @@ export const initialVendors: Vendor[] = [
   {
     id: 'v-005',
     name: 'Kishu Leather & Accessories',
+    readingFurigana: 'きしゅうれざー',
     ownerName: '中村 彩乃',
     furigana: 'ナカムラ アヤノ',
     phone: '090-7766-3322',
@@ -131,6 +136,7 @@ export const initialVendors: Vendor[] = [
   {
     id: 'v-006',
     name: '昔なつかし射的＆スーパーボールすくい',
+    readingFurigana: 'むかしなつかし',
     ownerName: '鈴木 辰男',
     furigana: 'スズキ タツオ',
     phone: '090-4444-8888',
@@ -150,6 +156,7 @@ export const initialVendors: Vendor[] = [
   {
     id: 'v-007',
     name: 'アジアン屋台 ナマステ (要注意)',
+    readingFurigana: 'なますて',
     ownerName: '松田 洋介',
     furigana: 'マツダ ヨウスケ',
     phone: '080-6677-8899',
@@ -172,6 +179,7 @@ export const initialVendors: Vendor[] = [
   {
     id: 'v-008',
     name: '爆音激辛からあげ 天狗 (※出禁・受付不可)',
+    readingFurigana: 'てんぐ',
     ownerName: '鬼頭 龍馬',
     furigana: 'キトウ リュウマ',
     phone: '090-9999-0000',
@@ -192,6 +200,7 @@ export const initialVendors: Vendor[] = [
   {
     id: 'v-009',
     name: '串カツ浪花亭 (※出禁・無断キャンセル常習)',
+    readingFurigana: 'なにわてい',
     ownerName: '坂本 幸治',
     furigana: 'サカモト コウジ',
     phone: '080-1122-3344',
@@ -213,6 +222,7 @@ export const initialVendors: Vendor[] = [
   {
     id: 'v-010',
     name: '扇ヶ浜地域活性化振興会',
+    readingFurigana: 'おうぎがはま',
     ownerName: '木村 浩二',
     furigana: 'キムラ コウジ',
     phone: '0739-22-9988',

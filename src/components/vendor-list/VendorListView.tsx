@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Users, 
   Search, 
@@ -25,11 +25,17 @@ import {
   Download, 
   Printer,
   ExternalLink,
-  Building2
+  Building2,
+  Sparkles
 } from 'lucide-react';
 import { Vendor, VendorStatus, EventEntry, NightMarketEvent, isVendorOrganization } from '../../types';
 import { mergePdfDocuments, createSampleDocPdf, FileItemToMerge } from '../../utils/pdfMerger';
 import { Instagram, getInstagramUrl, getInstagramHandle, InstagramBadge } from '../../utils/instagram';
+import { 
+  getVendorReading, 
+  getKanaInitialGroup, 
+  sortVendorsByJapaneseAlphabet 
+} from '../../utils/aiNameReading';
 import { VendorDetailModal } from './VendorDetailModal';
 import { VendorEditModal } from './VendorEditModal';
 
@@ -52,6 +58,8 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<'ALL' | VendorStatus>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'store' | 'organization'>('ALL');
+  const [sortBy, setSortBy] = useState<'kana' | 'original' | 'count'>('kana'); // デフォルトで五十音順（AI自動判定）
+  const [kanaRow, setKanaRow] = useState<string>('ALL');
   const [selectedVendorForDetail, setSelectedVendorForDetail] = useState<Vendor | null>(null);
   const [detailInitialTab, setDetailInitialTab] = useState<'info' | 'fire' | 'permit'>('info');
   const [isMergingPdfs, setIsMergingPdfs] = useState(false);
@@ -60,26 +68,39 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
   const [isDeleteUnlocked, setIsDeleteUnlocked] = useState(false);
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
 
-  // フィルター
-  const filteredVendors = vendors.filter((v) => {
-    const matchesSearch = 
-      v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.ownerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.menuItems.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (v.organizationName && v.organizationName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (v.statusReason && v.statusReason.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
-    const matchesCategory = categoryFilter === 'ALL' || v.category === categoryFilter;
+  // フィルター & 五十音順（AI判定）ソート
+  const filteredVendors = useMemo(() => {
+    let result = vendors.filter((v) => {
+      const reading = getVendorReading(v);
+      const matchesSearch = 
+        v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.ownerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.menuItems.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        reading.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (v.statusReason && v.statusReason.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
+      const matchesCategory = categoryFilter === 'ALL' || v.category === categoryFilter;
 
-    const isOrg = isVendorOrganization(v);
-    const matchesType = 
-      typeFilter === 'ALL' || 
-      (typeFilter === 'organization' && isOrg) || 
-      (typeFilter === 'store' && !isOrg);
+      const isOrg = isVendorOrganization(v);
+      const matchesType = 
+        typeFilter === 'ALL' || 
+        (typeFilter === 'organization' && isOrg) || 
+        (typeFilter === 'store' && !isOrg);
 
-    return matchesSearch && matchesStatus && matchesCategory && matchesType;
-  });
+      const matchesKanaRow = 
+        kanaRow === 'ALL' || getKanaInitialGroup(reading) === kanaRow;
+
+      return matchesSearch && matchesStatus && matchesCategory && matchesType && matchesKanaRow;
+    });
+
+    if (sortBy === 'kana') {
+      result = sortVendorsByJapaneseAlphabet(result);
+    } else if (sortBy === 'count') {
+      result = [...result].sort((a, b) => b.pastParticipationCount - a.pastParticipationCount);
+    }
+    return result;
+  }, [vendors, searchTerm, statusFilter, categoryFilter, typeFilter, kanaRow, sortBy]);
 
   const bannedCount = vendors.filter((v) => v.status === 'banned').length;
   const warningCount = vendors.filter((v) => v.status === 'warning').length;
@@ -342,6 +363,68 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
         </div>
       </div>
 
+      {/* 並び替え & 五十音インデックスフィルター */}
+      <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs text-slate-400 font-medium mr-1 flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>並び替え:</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setSortBy('kana')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
+              sortBy === 'kana'
+                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+                : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300 border-slate-700'
+            }`}
+          >
+            <span>あいうえお五十音順（AI自動判定）</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSortBy('count')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
+              sortBy === 'count'
+                ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-md shadow-amber-500/20'
+                : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300 border-slate-700'
+            }`}
+          >
+            <span>出店回数順</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSortBy('original')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
+              sortBy === 'original'
+                ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-md shadow-amber-500/20'
+                : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300 border-slate-700'
+            }`}
+          >
+            <span>登録順</span>
+          </button>
+        </div>
+
+        {/* 五十音インデックスボタン群 */}
+        <div className="flex items-center gap-1 overflow-x-auto w-full md:w-auto no-scrollbar py-0.5">
+          <span className="text-[11px] text-slate-500 mr-1 hidden sm:inline">五十音絞込:</span>
+          {['ALL', 'あ行', 'か行', 'さ行', 'た行', 'な行', 'は行', 'ま行', 'や行', 'ら行', 'わ行'].map((group) => (
+            <button
+              key={group}
+              type="button"
+              onClick={() => setKanaRow(group)}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap border ${
+                kanaRow === group
+                  ? 'bg-amber-400/20 text-amber-300 border-amber-400/50 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 bg-slate-800/60 border-slate-800 hover:bg-slate-800'
+              }`}
+            >
+              {group === 'ALL' ? 'すべて' : group.replace('行', '')}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 出店者リスト一覧カード / テーブル */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredVendors.map((vendor) => {
@@ -438,6 +521,20 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
 
                 {/* 屋号 & 代表者 */}
                 <div>
+                  {(() => {
+                    const reading = getVendorReading(vendor);
+                    const kanaGroup = getKanaInitialGroup(reading);
+                    return (
+                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30 shrink-0">
+                          {kanaGroup}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          よみ: <strong className="text-slate-200 font-medium">{reading}</strong>
+                        </span>
+                      </div>
+                    );
+                  })()}
                   <h3 className="text-base font-bold text-white tracking-wide group-hover/card:text-amber-300 transition-colors flex items-center gap-1.5 leading-snug">
                     {isOrg && (
                       <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />

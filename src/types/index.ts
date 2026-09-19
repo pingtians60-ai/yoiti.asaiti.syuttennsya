@@ -60,8 +60,9 @@ export interface VendorFee {
 export interface Vendor {
   id: string;
   name: string;                          // 屋号・店名
+  readingFurigana?: string;              // 屋号・店名の五十音順用よみがな（AI判定・ソートキー）
   ownerName: string;                     // 代表者名
-  furigana?: string;                     // フリガナ
+  furigana?: string;                     // 代表者フリガナ
   phone: string;                         // 電話番号
   email: string;                         // メールアドレス
   lineId?: string;                       // LINE ID
