@@ -1,5 +1,10 @@
 # 🏮 夜市出店者管理システム
 
+🌐 **Web公開URL（ブラウザですぐに使えます）**:  
+👉 **[https://pingtians60-ai.github.io/yoiti.asaiti.syuttennsya/](https://pingtians60-ai.github.io/yoiti.asaiti.syuttennsya/)**
+
+---
+
 ## 🚀 起動方法（エクスプローラーから）
 1. **フォルダ内の「夜市出店者管理システム」または「起動する.bat」をダブルクリック**するだけです。
 2. 自動的にローカルサーバーが立ち上がり、既定のブラウザでシステムが開きます。
