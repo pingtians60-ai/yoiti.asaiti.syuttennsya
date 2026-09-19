@@ -445,12 +445,6 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                     <span className="truncate">{vendor.name}</span>
                   </h3>
 
-                  {isOrg && vendor.organizationName && (
-                    <div className="text-[11px] text-emerald-400/90 font-medium flex items-center gap-1 mt-0.5">
-                      <span>所属: {vendor.organizationName}</span>
-                    </div>
-                  )}
-
                   <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
                     <span>代表: <strong className="text-slate-300 font-medium">{vendor.ownerName}</strong></span>
                     {vendor.pastParticipationCount > 0 && (

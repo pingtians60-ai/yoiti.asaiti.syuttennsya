@@ -362,12 +362,6 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
                             詳細 ↗
                           </span>
                         </div>
-                        {isOrg && fullVendor.organizationName && (
-                          <div className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1 mt-1">
-                            <Building2 className="w-3 h-3 text-emerald-400 shrink-0" />
-                            <span>所属: {fullVendor.organizationName}</span>
-                          </div>
-                        )}
                         <div className="text-[11px] text-slate-300 mt-1 flex items-center gap-1">
                           <span className="text-slate-400">代表:</span>
                           <strong>{entry.vendorSnapshot.ownerName}</strong>

@@ -572,7 +572,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           <span>代表: {v.ownerName}</span>
                           <span>TEL: {v.phone}</span>
                           {v.menuItems && <span>品目: {v.menuItems}</span>}
-                          {v.organizationName && <span className="text-emerald-400 font-medium">所属: {v.organizationName}</span>}
                         </div>
                       </div>
                       <div className="text-left sm:text-right shrink-0">

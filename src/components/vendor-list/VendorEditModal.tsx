@@ -167,19 +167,6 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
                   <span>登録団体</span>
                 </button>
               </div>
-
-              {formData.organizationType === 'organization' && (
-                <div className="pt-2">
-                  <label className="block text-emerald-300 font-semibold mb-1">所属団体名・グループ名</label>
-                  <input
-                    type="text"
-                    value={formData.organizationName || ''}
-                    onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
-                    placeholder="例: 扇ヶ浜地域振興協力会、〇〇青年サークル 等"
-                    className="w-full bg-slate-800 border border-emerald-500/50 rounded-lg px-3 py-2 text-white placeholder-slate-500 text-xs"
-                  />
-                </div>
-              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

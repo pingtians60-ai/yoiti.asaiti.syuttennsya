@@ -766,12 +766,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 詳細 ↗
                               </span>
                             </div>
-                            {isOrg && fullVendor.organizationName && (
-                              <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 mt-1">
-                                <Building2 className="w-3 h-3 text-emerald-400 shrink-0" />
-                                <span>所属: {fullVendor.organizationName}</span>
-                              </div>
-                            )}
+
                             <div className="text-[10px] text-slate-400 mt-1 flex items-center justify-between gap-2 flex-wrap">
                               <span>ID: {entry.vendorSnapshot.id}</span>
                               {fullVendor.instagram && (

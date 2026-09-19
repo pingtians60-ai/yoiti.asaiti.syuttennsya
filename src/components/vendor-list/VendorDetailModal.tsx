@@ -564,14 +564,6 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
                 <span>{vendor.name}</span>
               </h2>
 
-              {/* 登録団体の所属グループ名 */}
-              {isVendorOrganization(vendor) && vendor.organizationName && (
-                <div className="mt-1 px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2 font-bold w-fit">
-                  <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>所属団体・グループ: {vendor.organizationName}</span>
-                </div>
-              )}
-
               <div className="text-xs text-slate-300 flex items-center gap-2 pt-0.5 flex-wrap">
                 <span className="text-slate-400">代表者:</span>
                 <strong className="text-white font-bold">{vendor.ownerName}</strong>
