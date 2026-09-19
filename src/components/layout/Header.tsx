@@ -45,6 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState(event);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   const handleExport = () => {
     const data = exportAllDataAsJson();
@@ -84,11 +85,18 @@ export const Header: React.FC<HeaderProps> = ({
                 className="flex items-center gap-2 sm:gap-3 text-left group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-xl p-0.5 transition"
                 title="夜市全体のダッシュボードを開く"
               >
-                <img
-                  src="/logo.png"
-                  alt="たなべ夜市 ロゴ"
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-contain bg-white p-0.5 shadow-md border border-slate-700/80 flex-shrink-0 group-hover:scale-105 transition-all duration-200"
-                />
+                {!logoFailed ? (
+                  <img
+                    src={`${import.meta.env.BASE_URL}logo.png`}
+                    alt="たなべ夜市 ロゴ"
+                    onError={() => setLogoFailed(true)}
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-contain bg-white p-0.5 shadow-md border border-slate-700/80 flex-shrink-0 group-hover:scale-105 transition-all duration-200"
+                  />
+                ) : (
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-lg shadow-md flex-shrink-0">
+                    🏮
+                  </div>
+                )}
                 <h1 className="text-base sm:text-xl font-black text-white tracking-wide group-hover:text-amber-300 transition-colors whitespace-nowrap">
                   夜市管理
                 </h1>
