@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Download, 
   Upload,
@@ -7,9 +7,7 @@ import {
   Sparkles,
   Calendar,
   Building2,
-  Store,
-  Sun,
-  Moon
+  Store
 } from 'lucide-react';
 import { NightMarketEvent } from '../../types';
 import { exportAllDataAsJson } from '../../utils/storage';
@@ -49,19 +47,6 @@ export const Header: React.FC<HeaderProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState(event);
   const [logoFailed, setLogoFailed] = useState(false);
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    return localStorage.getItem('yoiti_theme') === 'dark';
-  });
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('yoiti_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('yoiti_theme', 'light');
-    }
-  }, [isDark]);
 
   const handleExport = () => {
     const data = exportAllDataAsJson();
@@ -163,18 +148,6 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* モバイル時に上段右側に並べるアクションボタン */}
             <div className="flex items-center gap-1.5 sm:hidden ml-auto">
-              {/* テーマ切替 */}
-              <button
-                onClick={() => setIsDark(!isDark)}
-                className={`p-1.5 rounded-xl border transition ${
-                  !isDark
-                    ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300'
-                    : 'bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700'
-                }`}
-                title={isDark ? '明るい色（ライトモード）に切り替え' : '夜間（ダークモード）に切り替え'}
-              >
-                {!isDark ? <Sun className="w-3.5 h-3.5 text-amber-600" /> : <Moon className="w-3.5 h-3.5 text-indigo-400" />}
-              </button>
               <button
                 onClick={onOpenSpreadsheetImport}
                 className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition"
@@ -240,29 +213,6 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* PC・タブレット用右側アクションボタン（モバイルでは上段にコンパクト配置済みのためhidden sm:flex） */}
           <div className="hidden sm:flex items-center gap-2 flex-wrap justify-end">
-            {/* テーマ切替（明るい色 ☀️ / 夜間 🌙） */}
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
-                !isDark
-                  ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300 shadow-sm'
-                  : 'bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700'
-              }`}
-              title={isDark ? '明るい色（ライトモード）に切り替え' : '夜間（ダークモード）に切り替え'}
-            >
-              {!isDark ? (
-                <>
-                  <Sun className="w-3.5 h-3.5 text-amber-600" />
-                  <span>明るい色</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>夜間</span>
-                </>
-              )}
-            </button>
-
             {/* Googleスプレッドシート連携・自動記入 */}
             <button
               onClick={onOpenSpreadsheetImport}
