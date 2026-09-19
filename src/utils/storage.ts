@@ -138,7 +138,8 @@ export function loadAllEvents(): NightMarketEvent[] {
     time: ''
   };
 
-  const finalEvents = [cleanAllEvent, ...nonAllEvents];
+  // イベントがない場合は初期イベントを含める
+  const finalEvents = nonAllEvents.length > 0 ? [cleanAllEvent, ...nonAllEvents] : [cleanAllEvent, initialEvent];
 
   // localStorage も即時同期して過去の古いデータを完全に上書き一新
   try {
@@ -176,7 +177,7 @@ export function loadVendors(): Vendor[] {
   } catch (e) {
     console.error('Failed to load vendors data:', e);
   }
-  return []; // 初期状態は空
+  return initialVendors; // 初期状態はマスターデータを使用
 }
 
 export function saveVendors(vendors: Vendor[]): void {
@@ -190,7 +191,7 @@ export function loadEntries(): EventEntry[] {
   } catch (e) {
     console.error('Failed to load entries data:', e);
   }
-  return []; // 初期状態は空
+  return normalizeEntries(initialEntries); // 初期状態はマスターエントリーを使用
 }
 
 export function saveEntries(entries: EventEntry[]): void {

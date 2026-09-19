@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Download, 
+  Upload,
   AlertTriangle,
   FileSpreadsheet,
   Sparkles,
@@ -157,11 +158,23 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
               <button
                 onClick={handleExport}
-                title="保存"
+                title="データを保存（JSONエクスポート）"
                 className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700 transition"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-400" />
               </button>
+              <label
+                title="データを復元（JSONインポート）"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5 text-blue-400" />
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
             </div>
           </div>
 
@@ -213,12 +226,27 @@ export const Header: React.FC<HeaderProps> = ({
             {/* 保存 */}
             <button
               onClick={handleExport}
-              title="データをJSONファイルとして保存"
+              title="データをJSONファイルとして保存（別端末への移行・バックアップ用）"
               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition"
             >
               <Download className="w-3.5 h-3.5 text-emerald-400" />
               <span>保存</span>
             </button>
+
+            {/* 復元 */}
+            <label
+              title="保存したJSONファイルを読み込んでデータを同期・復元"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5 text-blue-400" />
+              <span>復元</span>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </label>
           </div>
         </div>
       </header>
