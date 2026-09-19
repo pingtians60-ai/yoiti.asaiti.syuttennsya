@@ -82,48 +82,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 夜市全体ポータルモードの案内バー（夜市全体選択時） */}
-      {isAllEvent && (
-        <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/30 rounded-3xl p-5 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-md shadow-amber-950/50 shrink-0">
-              <Users className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-black text-white">夜市全体 ダッシュボード</h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  出店者・登録団体マスター管理
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                ※ ここに表示されている名簿は<strong>過去のすべての登録店舗（{storeVendors.length}店舗）・登録団体（{organizationVendors.length}団体）のマスター名簿</strong>です。特定の夜市イベントにエントリーしているわけではありません。<br />
-                各回イベントへのブース配置・出店料・入金管理を行うには、上部のセレクターまたは右側のボタンから対象の夜市イベントを選択してください。
-              </p>
-            </div>
-          </div>
 
-          {/* 開催イベントへのショートカット */}
-          {allEvents && allEvents.filter((e) => e.id !== 'event-all' && e.name !== '夜市全体' && !e.name.includes('出店者募集中') && !e.name.includes('募集中') && e.name.trim() !== '夜市' && !!e.date).length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap shrink-0">
-              <span className="text-xs text-slate-400">開催イベントへ切替:</span>
-              {allEvents
-                .filter((e) => e.id !== 'event-all' && e.name !== '夜市全体' && !e.name.includes('出店者募集中') && !e.name.includes('募集中') && e.name.trim() !== '夜市' && !!e.date)
-                .map((ev) => (
-                  <button
-                    key={ev.id}
-                    onClick={() => onSelectEvent?.(ev.id)}
-                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-amber-300 border border-slate-700 hover:border-amber-400/50 font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
-                  >
-                    <span>🏮</span>
-                    <span>{ev.name}</span>
-                    {ev.date && <span className="text-[10px] text-slate-400 font-normal">({ev.date})</span>}
-                  </button>
-                ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* 出禁・要注意出店者アラート（該当がある場合） */}
       {!isAllEvent && problematicEntries.length > 0 && (
