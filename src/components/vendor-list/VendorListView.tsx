@@ -94,13 +94,23 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
       return matchesSearch && matchesStatus && matchesCategory && matchesType && matchesKanaRow;
     });
 
+    // 登録出店（status !== 'banned'）を上部、出禁（status === 'banned'）を下部にグループ分け
+    let regularList = result.filter((v) => v.status !== 'banned');
+    let bannedList = result.filter((v) => v.status === 'banned');
+
     if (sortBy === 'kana') {
-      result = sortVendorsByJapaneseAlphabet(result);
+      regularList = sortVendorsByJapaneseAlphabet(regularList);
+      bannedList = sortVendorsByJapaneseAlphabet(bannedList);
     } else if (sortBy === 'count') {
-      result = [...result].sort((a, b) => b.pastParticipationCount - a.pastParticipationCount);
+      regularList = [...regularList].sort((a, b) => b.pastParticipationCount - a.pastParticipationCount);
+      bannedList = [...bannedList].sort((a, b) => b.pastParticipationCount - a.pastParticipationCount);
     }
-    return result;
+
+    return [...regularList, ...bannedList];
   }, [vendors, searchTerm, statusFilter, categoryFilter, typeFilter, kanaRow, sortBy]);
+
+  const regularVendors = useMemo(() => filteredVendors.filter(v => v.status !== 'banned'), [filteredVendors]);
+  const bannedVendors = useMemo(() => filteredVendors.filter(v => v.status === 'banned'), [filteredVendors]);
 
   const bannedCount = vendors.filter((v) => v.status === 'banned').length;
   const warningCount = vendors.filter((v) => v.status === 'warning').length;
@@ -425,231 +435,395 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
         </div>
       </div>
 
-      {/* 出店者リスト一覧カード / テーブル */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredVendors.map((vendor) => {
-          const isBanned = vendor.status === 'banned';
-          const isWarning = vendor.status === 'warning';
-          const isOrg = isVendorOrganization(vendor);
-
-          return (
-            <div
-              key={vendor.id}
-              onClick={() => {
-                setSelectedVendorForDetail(vendor);
-                setDetailInitialTab('info');
-              }}
-              className={`cursor-pointer rounded-2xl p-4 sm:p-5 border transition-all duration-200 flex flex-col justify-between shadow-md relative overflow-hidden group/card hover:shadow-xl hover:-translate-y-0.5 ${
-                isBanned
-                  ? 'bg-red-950/20 border-red-600/60 shadow-red-950/30 hover:border-red-500'
-                  : isWarning
-                  ? 'bg-amber-950/20 border-amber-600/50 shadow-amber-950/20 hover:border-amber-500'
-                  : isOrg
-                  ? 'bg-gradient-to-br from-emerald-950/25 via-slate-900/95 to-slate-900/95 border-emerald-500/50 shadow-emerald-950/20 hover:border-emerald-400 ring-1 ring-emerald-500/20'
-                  : 'bg-slate-900/80 border-slate-800 hover:border-amber-500/50 hover:bg-slate-850'
-              }`}
-              title="クリックして出店者の詳細（連絡先・営業許可証・消防・許可証）を表示"
-            >
-              {/* 出禁・要注意・登録団体のストライプヘッダー */}
-              {isBanned && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 animate-pulse" />
-              )}
-              {isWarning && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500" />
-              )}
-              {isOrg && !isBanned && !isWarning && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500" />
-              )}
-
-              <div className="space-y-3">
-                {/* 上部: ステータス・区分 & カテゴリ & 消防/許可証クイックインジケーター */}
-                <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                      isBanned
-                        ? 'bg-red-600 text-white'
-                        : isWarning
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                    }`}>
-                      {isBanned && <ShieldAlert className="w-3 h-3" />}
-                      {isWarning && <AlertTriangle className="w-3 h-3" />}
-                      {!isBanned && !isWarning && <ShieldCheck className="w-3 h-3" />}
-                      <span>{isBanned ? '出禁' : isWarning ? '要注意' : '通常'}</span>
-                    </span>
-
-                    {isOrg ? (
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500 text-slate-950 flex items-center gap-1">
-                        <Building2 className="w-3 h-3" />
-                        登録団体
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                        店舗
-                      </span>
-                    )}
-
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/80">
-                      {vendor.category === 'food' ? '飲食' : vendor.category === 'kitchen_car' ? 'キッチンカー' : vendor.category === 'drink' ? 'ドリンク' : vendor.category === 'goods' ? '物販' : '縁日'}
-                    </span>
+      {/* 出店者リスト表示領域（登録出店は上部、出禁は下部） */}
+      {filteredVendors.length === 0 ? (
+        <div className="py-12 text-center text-slate-500 text-xs bg-slate-900/40 rounded-2xl border border-slate-800">
+          条件に一致する出店者が見つかりませんでした。
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {/* 上部: 登録出店者一覧 */}
+          {regularVendors.length > 0 && (
+            <div className="space-y-3">
+              {bannedVendors.length > 0 && (
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                    <h3 className="text-sm font-bold text-slate-200">
+                      登録出店者 ({regularVendors.length}件)
+                    </h3>
                   </div>
-
-                  {/* 消防・許可証などのクイックインジケーター */}
-                  {(() => {
-                    const vendorEntry = entries.find(e => e.vendorId === vendor.id || e.vendorSnapshot.id === vendor.id);
-                    const hasFire = vendorEntry?.fireSafety.hasFireAppliance ?? (
-                      vendor.category === 'food' || vendor.category === 'kitchen_car' || vendor.tags?.some(t => t.includes('火気') || t.includes('ガス') || t.includes('炭火'))
-                    );
-                    return (
-                      <div className="flex items-center gap-1 text-[10px]">
-                        {hasFire && (
-                          <span className="px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/30 font-medium flex items-center gap-0.5" title="火気使用対象ブース">
-                            <Flame className="w-2.5 h-2.5" />
-                            <span>消防</span>
-                          </span>
-                        )}
-                        {vendorEntry?.permitIssued && (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium flex items-center gap-0.5" title="出店許可証発行済">
-                            <Award className="w-2.5 h-2.5" />
-                            <span>許可済</span>
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  <span className="text-xs text-slate-400">五十音順で整列</span>
                 </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {regularVendors.map((vendor) => {
+                  const isWarning = vendor.status === 'warning';
+                  const isOrg = isVendorOrganization(vendor);
 
-                {/* 屋号 & 代表者 */}
-                <div>
-                  {(() => {
-                    const reading = getVendorReading(vendor);
-                    const kanaGroup = getKanaInitialGroup(reading);
-                    return (
-                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30 shrink-0">
-                          {kanaGroup}
-                        </span>
-                        <span className="text-[11px] text-slate-400 font-mono">
-                          よみ: <strong className="text-slate-200 font-medium">{reading}</strong>
-                        </span>
-                      </div>
-                    );
-                  })()}
-                  <h3 className="text-base font-bold text-white tracking-wide group-hover/card:text-amber-300 transition-colors flex items-center gap-1.5 leading-snug">
-                    {isOrg && (
-                      <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    )}
-                    <span className="truncate">{vendor.name}</span>
-                  </h3>
-
-                  <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                    <span>代表: <strong className="text-slate-300 font-medium">{vendor.ownerName}</strong></span>
-                    {vendor.pastParticipationCount > 0 && (
-                      <span className="text-amber-400/90 text-[11px]">
-                        (出店{vendor.pastParticipationCount}回)
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* 主な出店品目（1行でコンパクトに表示） */}
-                {vendor.menuItems && (
-                  <div className="text-xs text-slate-300 bg-slate-800/40 px-2.5 py-1.5 rounded-lg border border-slate-800/80 flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-400 shrink-0 font-medium">品目:</span>
-                    <span className="truncate text-slate-300 text-xs">{vendor.menuItems}</span>
-                  </div>
-                )}
-
-                {/* 出禁・要注意のワンライナー要約 */}
-                {(isBanned || isWarning) && (
-                  <div className={`px-2.5 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${
-                    isBanned
-                      ? 'bg-red-950/50 border-red-700/60 text-red-200'
-                      : 'bg-amber-950/50 border-amber-700/60 text-amber-200'
-                  }`}>
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate text-[11px]">
-                      {vendor.statusReason || (isBanned ? '出禁指定されています' : '要注意店舗です')}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* カード下部操作ボタン */}
-              <div className="mt-4 pt-2.5 border-t border-slate-800/80 flex justify-between items-center text-xs">
-                {/* Instagramがあれば小さなリンクとして下部左側にスマートに配置 */}
-                {vendor.instagram ? (
-                  <a
-                    href={getInstagramUrl(vendor.instagram) || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 text-[11px] text-pink-400 hover:text-pink-300 font-medium transition"
-                    title={`${vendor.name} の公式Instagramを開く`}
-                  >
-                    <Instagram className="w-3 h-3" />
-                    <span className="max-w-[100px] sm:max-w-[120px] truncate">{getInstagramHandle(vendor.instagram)}</span>
-                  </a>
-                ) : (
-                  <span className="text-[10px] text-slate-500">クリックで詳細表示</span>
-                )}
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedVendorForDetail(vendor);
-                      setDetailInitialTab('info');
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500 text-amber-300 hover:text-slate-950 font-bold text-xs border border-amber-500/30 transition flex items-center gap-1 shadow-sm"
-                    title="出店者の詳細情報を表示"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>詳細</span>
-                  </button>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingVendor(vendor);
-                    }}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 transition"
-                    title="編集・出禁設定"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </button>
-
-                  {isDeleteUnlocked ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setVendorToDelete(vendor);
+                  return (
+                    <div
+                      key={vendor.id}
+                      onClick={() => {
+                        setSelectedVendorForDetail(vendor);
+                        setDetailInitialTab('info');
                       }}
-                      className="p-1.5 rounded-lg bg-rose-900/60 hover:bg-rose-700 text-rose-200 hover:text-white border border-rose-700/80 transition"
-                      title="この出店者を削除"
+                      className={`cursor-pointer rounded-2xl p-4 sm:p-5 border transition-all duration-200 flex flex-col justify-between shadow-md relative overflow-hidden group/card hover:shadow-xl hover:-translate-y-0.5 ${
+                        isWarning
+                          ? 'bg-amber-950/20 border-amber-600/50 shadow-amber-950/20 hover:border-amber-500'
+                          : isOrg
+                          ? 'bg-gradient-to-br from-emerald-950/25 via-slate-900/95 to-slate-900/95 border-emerald-500/50 shadow-emerald-950/20 hover:border-emerald-400 ring-1 ring-emerald-500/20'
+                          : 'bg-slate-900/80 border-slate-800 hover:border-amber-500/50 hover:bg-slate-850'
+                      }`}
+                      title="クリックして出店者の詳細（連絡先・営業許可証・消防・許可証）を表示"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  ) : (
-                    <span
-                      className="p-1.5 text-slate-600 cursor-not-allowed inline-flex items-center"
-                      title="誤削除防止のためロックされています。上部の「削除保護中」を押すと解除できます。"
-                    >
-                      <Lock className="w-3.5 h-3.5" />
-                    </span>
-                  )}
-                </div>
+                      {/* 要注意・登録団体のストライプヘッダー */}
+                      {isWarning && (
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500" />
+                      )}
+                      {isOrg && !isWarning && (
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500" />
+                      )}
+
+                      <div className="space-y-3">
+                        {/* 上部: ステータス・区分 & カテゴリ & 消防/許可証クイックインジケーター */}
+                        <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                              isWarning
+                                ? 'bg-amber-500 text-slate-950 font-black'
+                                : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            }`}>
+                              {isWarning && <AlertTriangle className="w-3 h-3" />}
+                              {!isWarning && <ShieldCheck className="w-3 h-3" />}
+                              <span>{isWarning ? '要注意' : '通常'}</span>
+                            </span>
+
+                            {isOrg ? (
+                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500 text-slate-950 flex items-center gap-1">
+                                <Building2 className="w-3 h-3" />
+                                登録団体
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                                店舗
+                              </span>
+                            )}
+
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/80">
+                              {vendor.category === 'food' ? '飲食' : vendor.category === 'kitchen_car' ? 'キッチンカー' : vendor.category === 'drink' ? 'ドリンク' : vendor.category === 'goods' ? '物販' : '縁日'}
+                            </span>
+                          </div>
+
+                          {/* 消防・許可証などのクイックインジケーター */}
+                          {(() => {
+                            const vendorEntry = entries.find(e => e.vendorId === vendor.id || e.vendorSnapshot.id === vendor.id);
+                            const hasFire = vendorEntry?.fireSafety.hasFireAppliance ?? (
+                              vendor.category === 'food' || vendor.category === 'kitchen_car' || vendor.tags?.some(t => t.includes('火気') || t.includes('ガス') || t.includes('炭火'))
+                            );
+                            return (
+                              <div className="flex items-center gap-1 text-[10px]">
+                                {hasFire && (
+                                  <span className="px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/30 font-medium flex items-center gap-0.5" title="火気使用対象ブース">
+                                    <Flame className="w-2.5 h-2.5" />
+                                    <span>消防</span>
+                                  </span>
+                                )}
+                                {vendorEntry?.permitIssued && (
+                                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium flex items-center gap-0.5" title="出店許可証発行済">
+                                    <Award className="w-2.5 h-2.5" />
+                                    <span>許可済</span>
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/* 屋号 & 代表者 */}
+                        <div>
+                          <h3 className="text-base font-bold text-white tracking-wide group-hover/card:text-amber-300 transition-colors flex items-center gap-1.5 leading-snug">
+                            {isOrg && (
+                              <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            )}
+                            <span className="truncate">{vendor.name}</span>
+                          </h3>
+
+                          <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                            <span>代表: <strong className="text-slate-300 font-medium">{vendor.ownerName}</strong></span>
+                            {vendor.pastParticipationCount > 0 && (
+                              <span className="text-amber-400/90 text-[11px]">
+                                (出店{vendor.pastParticipationCount}回)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 主な出店品目（1行でコンパクトに表示） */}
+                        {vendor.menuItems && (
+                          <div className="text-xs text-slate-300 bg-slate-800/40 px-2.5 py-1.5 rounded-lg border border-slate-800/80 flex items-center gap-1.5">
+                            <span className="text-[10px] text-slate-400 shrink-0 font-medium">品目:</span>
+                            <span className="truncate text-slate-300 text-xs">{vendor.menuItems}</span>
+                          </div>
+                        )}
+
+                        {/* 要注意のワンライナー要約 */}
+                        {isWarning && (
+                          <div className="px-2.5 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 bg-amber-950/50 border-amber-700/60 text-amber-200">
+                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate text-[11px]">
+                              {vendor.statusReason || '要注意店舗です'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* カード下部操作ボタン */}
+                      <div className="mt-4 pt-2.5 border-t border-slate-800/80 flex justify-between items-center text-xs">
+                        {vendor.instagram ? (
+                          <a
+                            href={getInstagramUrl(vendor.instagram) || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-[11px] text-pink-400 hover:text-pink-300 font-medium transition"
+                            title={`${vendor.name} の公式Instagramを開く`}
+                          >
+                            <Instagram className="w-3 h-3" />
+                            <span className="max-w-[100px] sm:max-w-[120px] truncate">{getInstagramHandle(vendor.instagram)}</span>
+                          </a>
+                        ) : (
+                          <span className="text-[10px] text-slate-500">クリックで詳細表示</span>
+                        )}
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedVendorForDetail(vendor);
+                              setDetailInitialTab('info');
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500 text-amber-300 hover:text-slate-950 font-bold text-xs border border-amber-500/30 transition flex items-center gap-1 shadow-sm"
+                            title="出店者の詳細情報を表示"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>詳細</span>
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingVendor(vendor);
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 transition"
+                            title="編集・出禁設定"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+
+                          {isDeleteUnlocked ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setVendorToDelete(vendor);
+                              }}
+                              className="p-1.5 rounded-lg bg-rose-900/60 hover:bg-rose-700 text-rose-200 hover:text-white border border-rose-700/80 transition"
+                              title="この出店者を削除"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          ) : (
+                            <span
+                              className="p-1.5 text-slate-600 cursor-not-allowed inline-flex items-center"
+                              title="誤削除防止のためロックされています。上部の「削除保護中」を押すと解除できます。"
+                            >
+                              <Lock className="w-3.5 h-3.5" />
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          );
-        })}
+          )}
 
-        {filteredVendors.length === 0 && (
-          <div className="col-span-full py-12 text-center text-slate-500 text-xs bg-slate-900/40 rounded-2xl border border-slate-800">
-            条件に一致する出店者が見つかりませんでした。
-          </div>
-        )}
-      </div>
+          {/* 下部: 出禁・受付不可店舗一覧 */}
+          {bannedVendors.length > 0 && (
+            <div className="space-y-3 pt-6 border-t-2 border-red-900/50">
+              <div className="flex items-center justify-between pb-2 border-b border-red-900/40">
+                <div className="flex items-center gap-2">
+                  <div className="p-1 rounded-md bg-red-600/20 text-red-400 border border-red-500/30">
+                    <ShieldAlert className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-red-400 flex items-center gap-1.5">
+                      <span>出禁・受付不可店舗</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-950 text-red-300 border border-red-800">
+                        {bannedVendors.length}件
+                      </span>
+                    </h3>
+                  </div>
+                </div>
+                <span className="text-[11px] text-red-400 bg-red-950/70 border border-red-800/60 px-2.5 py-1 rounded-full font-medium">
+                  ※トラブル防止のため下部に隔離表示しています
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {bannedVendors.map((vendor) => {
+                  const isOrg = isVendorOrganization(vendor);
+
+                  return (
+                    <div
+                      key={vendor.id}
+                      onClick={() => {
+                        setSelectedVendorForDetail(vendor);
+                        setDetailInitialTab('info');
+                      }}
+                      className="cursor-pointer rounded-2xl p-4 sm:p-5 border transition-all duration-200 flex flex-col justify-between shadow-md relative overflow-hidden group/card hover:shadow-xl hover:-translate-y-0.5 bg-red-950/20 border-red-600/60 shadow-red-950/30 hover:border-red-500"
+                      title="クリックして出店者の詳細（連絡先・営業許可証・消防・許可証）を表示"
+                    >
+                      {/* 出禁ストライプヘッダー */}
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 animate-pulse" />
+
+                      <div className="space-y-3">
+                        {/* 上部: 出禁バッジ & 区分 & カテゴリ */}
+                        <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 bg-red-600 text-white shadow-sm shadow-red-900/50">
+                              <ShieldAlert className="w-3 h-3" />
+                              <span>出禁</span>
+                            </span>
+
+                            {isOrg ? (
+                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500 text-slate-950 flex items-center gap-1">
+                                <Building2 className="w-3 h-3" />
+                                登録団体
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                                店舗
+                              </span>
+                            )}
+
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/80">
+                              {vendor.category === 'food' ? '飲食' : vendor.category === 'kitchen_car' ? 'キッチンカー' : vendor.category === 'drink' ? 'ドリンク' : vendor.category === 'goods' ? '物販' : '縁日'}
+                            </span>
+                          </div>
+
+                          <span className="text-[10px] text-red-400/90 font-mono">受付停止</span>
+                        </div>
+
+                        {/* 屋号 & 代表者 */}
+                        <div>
+                          <h3 className="text-base font-bold text-white tracking-wide group-hover/card:text-red-300 transition-colors flex items-center gap-1.5 leading-snug">
+                            {isOrg && (
+                              <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            )}
+                            <span className="truncate">{vendor.name}</span>
+                          </h3>
+
+                          <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                            <span>代表: <strong className="text-slate-300 font-medium">{vendor.ownerName}</strong></span>
+                            {vendor.pastParticipationCount > 0 && (
+                              <span className="text-slate-500 text-[11px]">
+                                (出店{vendor.pastParticipationCount}回)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 主な出店品目 */}
+                        {vendor.menuItems && (
+                          <div className="text-xs text-slate-300 bg-slate-800/40 px-2.5 py-1.5 rounded-lg border border-slate-800/80 flex items-center gap-1.5">
+                            <span className="text-[10px] text-slate-400 shrink-0 font-medium">品目:</span>
+                            <span className="truncate text-slate-300 text-xs">{vendor.menuItems}</span>
+                          </div>
+                        )}
+
+                        {/* 出禁理由 */}
+                        <div className="px-2.5 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 bg-red-950/60 border-red-700/60 text-red-200">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-red-400" />
+                          <span className="truncate text-[11px]">
+                            {vendor.statusReason || '出禁指定されています（受付不可）'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* カード下部操作ボタン */}
+                      <div className="mt-4 pt-2.5 border-t border-slate-800/80 flex justify-between items-center text-xs">
+                        {vendor.instagram ? (
+                          <a
+                            href={getInstagramUrl(vendor.instagram) || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-[11px] text-pink-400 hover:text-pink-300 font-medium transition"
+                            title={`${vendor.name} の公式Instagramを開く`}
+                          >
+                            <Instagram className="w-3 h-3" />
+                            <span className="max-w-[100px] sm:max-w-[120px] truncate">{getInstagramHandle(vendor.instagram)}</span>
+                          </a>
+                        ) : (
+                          <span className="text-[10px] text-slate-500">クリックで詳細表示</span>
+                        )}
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedVendorForDetail(vendor);
+                              setDetailInitialTab('info');
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500 text-amber-300 hover:text-slate-950 font-bold text-xs border border-amber-500/30 transition flex items-center gap-1 shadow-sm"
+                            title="出店者の詳細情報を表示"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>詳細</span>
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingVendor(vendor);
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 transition"
+                            title="編集・出禁設定"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+
+                          {isDeleteUnlocked ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setVendorToDelete(vendor);
+                              }}
+                              className="p-1.5 rounded-lg bg-rose-900/60 hover:bg-rose-700 text-rose-200 hover:text-white border border-rose-700/80 transition"
+                              title="この出店者を削除"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          ) : (
+                            <span
+                              className="p-1.5 text-slate-600 cursor-not-allowed inline-flex items-center"
+                              title="誤削除防止のためロックされています。上部の「削除保護中」を押すと解除できます。"
+                            >
+                              <Lock className="w-3.5 h-3.5" />
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 出店者削除確認モーダル */}
       {vendorToDelete && (
