@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
   const serverApiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || ''
 
   return {
+    base: './',
     plugins: [
       react(),
       tailwindcss(),
