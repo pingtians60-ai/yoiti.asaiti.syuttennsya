@@ -1033,6 +1033,14 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
             onUpdateEntries(updatedEntries);
             setEditingVendor(null);
           }}
+          onDelete={(id) => {
+            if (onUpdateVendors) {
+              onUpdateVendors(vendors.filter((v) => v.id !== id));
+            }
+            const updatedEntries = entries.filter((e) => e.vendorId !== id && e.vendorSnapshot?.id !== id);
+            onUpdateEntries(updatedEntries);
+            setEditingVendor(null);
+          }}
         />
       )}
     </div>

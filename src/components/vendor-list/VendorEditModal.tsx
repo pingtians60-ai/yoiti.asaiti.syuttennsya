@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit3, Building2, Store, Sparkles } from 'lucide-react';
+import { Edit3, Building2, Store, Sparkles, Trash2 } from 'lucide-react';
 import { Vendor } from '../../types';
 import { Instagram } from '../../utils/instagram';
 import { inspectVendorWithAi, VendorAiInspectionResult } from '../../utils/gemini';
@@ -9,13 +9,15 @@ export interface VendorEditModalProps {
   isNew?: boolean;
   onClose: () => void;
   onSave: (vendor: Vendor) => void;
+  onDelete?: (vendorId: string) => void;
 }
 
 export const VendorEditModal: React.FC<VendorEditModalProps> = ({
   vendor,
   isNew = false,
   onClose,
-  onSave
+  onSave,
+  onDelete
 }) => {
   const [formData, setFormData] = useState<Vendor>({ 
     ...vendor,
@@ -378,20 +380,39 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
             </div>
           </div>
 
-          <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-            >
-              キャンセル
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shadow-md shadow-amber-500/20"
-            >
-              出店者情報を反映する
-            </button>
+          <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+            <div>
+              {!isNew && onDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`出店者「${formData.name}」を完全に削除しますか？\n※出店エントリーや履歴データも削除されます。\n※この操作は取り消せません。`)) {
+                      onDelete(formData.id);
+                    }
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 font-bold border border-red-500/30 flex items-center gap-1.5 transition text-xs"
+                >
+                  <Trash2 className="w-4 h-4 text-red-400" />
+                  <span>この出店者を削除</span>
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+              >
+                キャンセル
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold shadow-md shadow-amber-500/20 transition"
+              >
+                出店者情報を反映する
+              </button>
+            </div>
           </div>
         </form>
       </div>

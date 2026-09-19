@@ -641,6 +641,14 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
             }
             setEditingVendor(null);
           }}
+          onDelete={(id) => {
+            onUpdateVendors(vendors.filter((v) => v.id !== id));
+            onUpdateEntries(entries.filter((e) => e.vendorId !== id && e.vendorSnapshot?.id !== id));
+            if (selectedVendorForDetail && selectedVendorForDetail.id === id) {
+              setSelectedVendorForDetail(null);
+            }
+            setEditingVendor(null);
+          }}
         />
       )}
 
