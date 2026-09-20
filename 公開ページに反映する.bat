@@ -5,6 +5,6 @@ echo ========================================================
 echo  夜市出店者管理システム：公開ページ（GitHub Pages）更新
 echo ========================================================
 echo.
-powershell -ExecutionPolicy Bypass -File "%~dp0deploy.ps1"
+node deploy.cjs
 echo.
 pause
