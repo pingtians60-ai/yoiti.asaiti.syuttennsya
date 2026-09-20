@@ -34,7 +34,7 @@ import {
   HardDrive,
   Building2
 } from 'lucide-react';
-import { Vendor, EventEntry, NightMarketEvent, FireApplianceType, SubmittedLicense, isVendorOrganization } from '../../types';
+import { Vendor, EventEntry, NightMarketEvent, FireApplianceType, SubmittedLicense, isVendorOrganization, getVendorCategoryLabel } from '../../types';
 import { Instagram, getInstagramUrl, getInstagramHandle } from '../../utils/instagram';
 
 interface VendorDetailModalProps {
@@ -435,14 +435,7 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
   };
 
   const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case 'food': return '飲食・屋台';
-      case 'kitchen_car': return 'キッチンカー';
-      case 'drink': return 'ドリンク・カフェ';
-      case 'goods': return 'クラフト・物販・体験';
-      case 'game': return '縁日・ゲーム';
-      default: return 'その他';
-    }
+    return getVendorCategoryLabel(category);
   };
 
   // 消防スタッフ確認のトグル
@@ -671,7 +664,7 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
                     未確認 ({existingLicenses.length}通)
                   </span>
                 )
-              ) : vendor.category === 'goods' || vendor.category === 'game' ? (
+              ) : vendor.category === 'outdoor' || vendor.category === 'goods' || vendor.category === 'game' ? (
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-medium">
                   対象外
                 </span>
@@ -1270,7 +1263,7 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                       : existingLicenses.length > 0
                       ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                      : vendor.category === 'goods' || vendor.category === 'game'
+                      : vendor.category === 'outdoor' || vendor.category === 'goods' || vendor.category === 'game'
                       ? 'bg-slate-800 text-slate-400 border border-slate-700'
                       : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
                   }`}>
@@ -1284,7 +1277,7 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
                           ? 'bg-emerald-500 text-slate-950'
                           : existingLicenses.length > 0
                           ? 'bg-amber-500 text-slate-950'
-                          : vendor.category === 'goods' || vendor.category === 'game'
+                          : vendor.category === 'outdoor' || vendor.category === 'goods' || vendor.category === 'game'
                           ? 'bg-slate-700 text-slate-300'
                           : 'bg-rose-500 text-white'
                       }`}>
@@ -1292,8 +1285,8 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
                           ? '✓ 営業許可証 確認済'
                           : existingLicenses.length > 0
                           ? '⚠ 営業許可証 未確認'
-                          : vendor.category === 'goods' || vendor.category === 'game'
-                          ? '提出対象外 (物販/縁日)'
+                          : vendor.category === 'outdoor' || vendor.category === 'goods' || vendor.category === 'game'
+                          ? '提出対象外 (物販・体験)'
                           : '✕ 営業許可証 未提出'}
                       </span>
                     </div>

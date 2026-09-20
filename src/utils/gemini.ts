@@ -142,7 +142,7 @@ export async function checkServerAiStatus(): Promise<{ hasServerKey: boolean; co
 }
 
 export interface VendorAiInspectionResult {
-  category: 'food' | 'drink' | 'kitchen_car' | 'goods' | 'game' | 'other';
+  category: 'kitchen_car' | 'food' | 'outdoor';
   hasFireAppliance: boolean;
   requiresFireExtinguisher: boolean;
   fireSafetyRisk: 'high' | 'medium' | 'none';
@@ -152,6 +152,7 @@ export interface VendorAiInspectionResult {
 
 /**
  * 出店者の屋号・品目から、裏でAIが自動的に火気リスクやカテゴリを推論する
+ * カテゴリは「キッチンカー」「飲食露店」「屋外出店（物販・体験）」の3区分
  */
 export async function inspectVendorWithAi(
   name: string,
@@ -170,7 +171,14 @@ export async function inspectVendorWithAi(
     if (res.ok) {
       const data = await res.json();
       if (data.result) {
-        return data.result;
+        const rawCat = data.result.category;
+        const normalizedCat: 'kitchen_car' | 'food' | 'outdoor' = 
+          rawCat === 'kitchen_car' ? 'kitchen_car' :
+          rawCat === 'food' || rawCat === 'drink' ? 'food' : 'outdoor';
+        return {
+          ...data.result,
+          category: normalizedCat
+        };
       }
     }
   } catch (err) {
@@ -180,15 +188,11 @@ export async function inspectVendorWithAi(
   // クライアント側フォールバック（ヒューリスティック判定）
   const text = `${name} ${menuItems}`.toLowerCase();
   const isKitchenCar = /キッチンカー|フードトラック|移動販売車/.test(text);
-  const isDrink = /ドリンク|ジュース|珈琲|コーヒー|お茶|タピオカ|ビール|酒/.test(text) && !/焼き|揚げ/.test(text);
-  const isGame = /射的|スーパーボール|くじ|ヨーヨー|輪投げ/.test(text);
-  const isGoods = /雑貨|アクセサリ|ハンドメイド|服|工芸/.test(text);
+  const isOutdoor = /雑貨|アクセサリ|ハンドメイド|服|工芸|射的|スーパーボール|くじ|ヨーヨー|輪投げ|ゲーム|ワークショップ|体験|占い|似顔絵|物販/.test(text) && !/焼き|揚げ|ラーメン|カレー|たこ焼き|ビール|ドリンク/.test(text);
 
   let category: VendorAiInspectionResult['category'] = 'food';
   if (isKitchenCar) category = 'kitchen_car';
-  else if (isDrink) category = 'drink';
-  else if (isGame) category = 'game';
-  else if (isGoods) category = 'goods';
+  else if (isOutdoor) category = 'outdoor';
 
   const hasFire = /焼き|揚げ|たこ焼き|クレープ|ラーメン|ステーキ|炭火|フライヤー|ガス|コンロ|発電機/.test(text);
 

@@ -1,4 +1,4 @@
-import { NightMarketEvent, Vendor, EventEntry } from '../types';
+import { NightMarketEvent, Vendor, EventEntry, VendorCategory } from '../types';
 import { initialEvent, initialVendors, initialEntries } from '../data/mockData';
 
 const STORAGE_KEYS = {
@@ -170,18 +170,31 @@ export function saveSelectedEventId(id: string): void {
   localStorage.setItem(STORAGE_KEYS.SELECTED_EVENT_ID, id);
 }
 
+export function normalizeVendorCategory(cat?: string): VendorCategory {
+  if (cat === 'kitchen_car') return 'kitchen_car';
+  if (cat === 'food' || cat === 'drink') return 'food';
+  return 'outdoor';
+}
+
+export function normalizeVendors(vendors: Vendor[]): Vendor[] {
+  return vendors.map(v => ({
+    ...v,
+    category: normalizeVendorCategory(v.category)
+  }));
+}
+
 export function loadVendors(): Vendor[] {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.VENDORS);
-    if (data !== null) return JSON.parse(data);
+    if (data !== null) return normalizeVendors(JSON.parse(data));
   } catch (e) {
     console.error('Failed to load vendors data:', e);
   }
-  return initialVendors; // 初期状態はマスターデータを使用
+  return normalizeVendors(initialVendors); // 初期状態はマスターデータを使用
 }
 
 export function saveVendors(vendors: Vendor[]): void {
-  localStorage.setItem(STORAGE_KEYS.VENDORS, JSON.stringify(vendors));
+  localStorage.setItem(STORAGE_KEYS.VENDORS, JSON.stringify(normalizeVendors(vendors)));
 }
 
 export function loadEntries(): EventEntry[] {
@@ -294,10 +307,13 @@ export function parseSpreadsheetCsv(csvText: string): Vendor[] {
     const note = cols[6] || '';
 
     let category: Vendor['category'] = 'food';
-    if (categoryRaw.includes('キッチンカー') || categoryRaw.includes('車')) category = 'kitchen_car';
-    else if (categoryRaw.includes('ドリンク') || categoryRaw.includes('カフェ')) category = 'drink';
-    else if (categoryRaw.includes('物販') || categoryRaw.includes('クラフト')) category = 'goods';
-    else if (categoryRaw.includes('縁日') || categoryRaw.includes('ゲーム')) category = 'game';
+    if (categoryRaw.includes('キッチンカー') || categoryRaw.includes('車')) {
+      category = 'kitchen_car';
+    } else if (categoryRaw.includes('物販') || categoryRaw.includes('体験') || categoryRaw.includes('クラフト') || categoryRaw.includes('縁日') || categoryRaw.includes('ゲーム') || categoryRaw.includes('屋外')) {
+      category = 'outdoor';
+    } else {
+      category = 'food';
+    }
 
     // 出禁・要注意判定
     let status: Vendor['status'] = 'active';

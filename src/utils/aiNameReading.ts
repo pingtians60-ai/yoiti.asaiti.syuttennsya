@@ -162,42 +162,62 @@ export async function inferVendorReadingWithAi(vendorName: string, clientApiKey?
   const offlineResult = inferReadingOffline(vendorName);
   const key = clientApiKey || getStoredGeminiApiKey();
 
-  if (!key) {
-    return offlineResult;
-  }
-
+  // 1. まずバックエンドAPI (/api/ai/infer-reading) を試行（.envのキーを使用）
   try {
-    const prompt = `以下の出店者・屋号について、五十音順（あいうえお順）に並べ替えるための正式な「読み仮名（すべて全角ひらがな）」を判定してください。
-「極旨」「炭火焼き」「本格」「アジアン屋台」などの装飾句・枕詞がある場合は、店名の主要本体（例: 極旨たこ焼き 蛸源 → たこげん、黒潮炭火焼き鳥 弁慶 → べんけい、Coffee Stand Lululu → るるる）の読みを最優先してください。
-回答はひらがなのみ（解説や記号は不要）で出力してください。
-
-出店者名: "${vendorName}"`;
-
-    const model = getStoredGeminiModel() || 'gemini-flash-latest';
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+    const backendRes = await fetch('/api/ai/infer-reading', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 20 }
-      })
+      body: JSON.stringify({ name: vendorName, clientApiKey: key }),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if (text) {
-        // ひらがな・カタカナ部分を抽出してひらがなに変換
-        const cleaned = katakanaToHiragana(text.replace(/[^ぁ-んァ-ヶ]/g, ''));
+    if (backendRes.ok) {
+      const data = await backendRes.json();
+      if (data.ok && data.reading) {
+        const cleaned = katakanaToHiragana(data.reading.replace(/[^ぁ-んァ-ヶ]/g, ''));
         if (cleaned.length > 0) {
           return cleaned;
         }
       }
     }
   } catch (e) {
-    console.warn('AI reading inference fallback to offline:', e);
+    console.warn('Backend AI reading inference failed, trying client fallback:', e);
   }
 
+  // 2. クライアント側にAPIキーがある場合は直接Gemini APIを試行
+  if (key) {
+    try {
+      const prompt = `以下の出店者・屋号について、五十音順（あいうえお順）に並べ替えるための正式な「読み仮名（すべて全角ひらがな）」を判定してください。
+「極旨」「炭火焼き」「本格」「アジアン屋台」などの装飾句・枕詞がある場合は、店名の主要本体（例: 極旨たこ焼き 蛸源 → たこげん、黒潮炭火焼き鳥 弁慶 → べんけい、Coffee Stand Lululu → るるる）の読みを最優先してください。
+回答はひらがなのみ（解説や記号は不要）で出力してください。
+
+出店者名: "${vendorName}"`;
+
+      const model = getStoredGeminiModel() || 'gemini-flash-latest';
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 20 }
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text) {
+          const cleaned = katakanaToHiragana(text.replace(/[^ぁ-んァ-ヶ]/g, ''));
+          if (cleaned.length > 0) {
+            return cleaned;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Direct AI reading inference fallback to offline:', e);
+    }
+  }
+
+  // 3. オフライン自然言語・辞書ルール判定
   return offlineResult;
 }
 

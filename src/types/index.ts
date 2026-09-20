@@ -60,6 +60,8 @@ export interface VendorFee {
   invoiceNumber?: string;                // 請求書/領収書番号
 }
 
+export type VendorCategory = 'kitchen_car' | 'food' | 'outdoor' | 'drink' | 'goods' | 'game' | 'other';
+
 export interface Vendor {
   id: string;
   name: string;                          // 屋号・店名
@@ -71,7 +73,7 @@ export interface Vendor {
   lineId?: string;                       // LINE ID
   instagram?: string;                    // Instagram (@アカウント名 または URL)
   address?: string;                      // 住所・所在地
-  category: 'food' | 'drink' | 'kitchen_car' | 'goods' | 'game' | 'other'; // 出店ジャンル
+  category: VendorCategory;              // 出店ジャンル: 'kitchen_car'(キッチンカー) | 'food'(飲食露店) | 'outdoor'(屋外出店（物販・体験）)
   organizationType?: 'store' | 'organization'; // 出店区分: 'store'(店舗) | 'organization'(団体)
   organizationName?: string;             // 所属団体名・グループ名（例: 扇ヶ浜地域振興会、田辺まちづくりサークル等）
   menuItems: string;                     // 出店・販売品目（例: たこ焼き、フルーツ飴、ハンドメイド雑貨など）
@@ -110,6 +112,28 @@ export function isVendorOrganization(vendor?: {
   if (/振興会|サークル|実行委員会|協議会|連合会|青年部|ボランティア/.test(vendor.name || '')) return true;
   if (vendor.organizationName && vendor.organizationName.trim().length > 0) return true;
   return false;
+}
+
+/**
+ * 出店ジャンルの表示用日本語ラベルを取得する
+ * 「キッチンカー」「飲食露店」「屋外出店（物販・体験）」の3ジャンルに集約
+ */
+export function getVendorCategoryLabel(category?: string): string {
+  if (!category) return '屋外出店（物販・体験）';
+  switch (category) {
+    case 'kitchen_car':
+      return 'キッチンカー';
+    case 'food':
+    case 'drink':
+    case 'food_stall':
+      return '飲食露店';
+    case 'outdoor':
+    case 'goods':
+    case 'game':
+    case 'other':
+    default:
+      return '屋外出店（物販・体験）';
+  }
 }
 
 /**

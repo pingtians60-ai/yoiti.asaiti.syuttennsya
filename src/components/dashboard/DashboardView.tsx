@@ -17,7 +17,7 @@ import {
   Building2,
   ExternalLink
 } from 'lucide-react';
-import { NightMarketEvent, EventEntry, Vendor, isVendorOrganization } from '../../types';
+import { NightMarketEvent, EventEntry, Vendor, isVendorOrganization, getVendorCategoryLabel } from '../../types';
 import { ActiveTab, VendorSubTab } from '../layout/Navigation';
 import { InstagramBadge } from '../../utils/instagram';
 
@@ -520,7 +520,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500 text-black font-bold">要注意</span>
                           )}
                           <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700">
-                            {v.category === 'kitchen_car' ? 'キッチンカー' : v.category === 'food' ? '飲食露店' : v.category === 'drink' ? 'ドリンク' : v.category === 'goods' ? '物販' : v.category === 'game' ? '縁日' : 'その他'}
+                            {getVendorCategoryLabel(v.category)}
                           </span>
                           {/* Instagram 直接表示（詳細を見なくてもワンクリックで閲覧可能） */}
                           {v.instagram && (

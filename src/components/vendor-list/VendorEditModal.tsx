@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Edit3, Building2, Store, Sparkles, Trash2 } from 'lucide-react';
-import { Vendor } from '../../types';
+import { Vendor, getVendorCategoryLabel } from '../../types';
 import { Instagram } from '../../utils/instagram';
 import { inspectVendorWithAi, VendorAiInspectionResult } from '../../utils/gemini';
 import { inferReadingOffline, inferVendorReadingWithAi } from '../../utils/aiNameReading';
@@ -12,6 +12,16 @@ export interface VendorEditModalProps {
   onSave: (vendor: Vendor) => void;
   onDelete?: (vendorId: string) => void;
 }
+
+const categoryLabels: Record<string, string> = {
+  kitchen_car: 'キッチンカー',
+  food: '飲食露店',
+  outdoor: '屋外出店（物販・体験）',
+  drink: '飲食露店',
+  goods: '屋外出店（物販・体験）',
+  game: '屋外出店（物販・体験）',
+  other: '屋外出店（物販・体験）'
+};
 
 export const VendorEditModal: React.FC<VendorEditModalProps> = ({
   vendor,
@@ -25,9 +35,75 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
     readingFurigana: vendor.readingFurigana || inferReadingOffline(vendor.name || ''),
     organizationType: vendor.organizationType || (vendor.tags?.some(t => /団体|振興会|サークル|NPO|実行委/.test(t)) ? 'organization' : 'store')
   });
+
   const [isAiChecking, setIsAiChecking] = useState(false);
-  const [isAiInferringReading, setIsAiInferringReading] = useState(false);
   const [aiInspection, setAiInspection] = useState<VendorAiInspectionResult | null>(null);
+
+  // 初期ロード時に既存データがあれば再判定をスキップするためのref
+  const lastCheckedMenuRef = useRef<string>(vendor.menuItems?.trim() || '');
+  const lastCheckedNameRef = useRef<string>(vendor.name?.trim() || '');
+
+  // 1. 出店品目・メニューの裏側AI自動判別（ボタンを押さずとも自動判定・反映）
+  useEffect(() => {
+    const trimmedMenu = formData.menuItems.trim();
+    if (!trimmedMenu) {
+      setAiInspection(null);
+      return;
+    }
+    // 既に判定済みの内容と同じならスキップ
+    if (trimmedMenu === lastCheckedMenuRef.current) return;
+
+    const timer = setTimeout(async () => {
+      lastCheckedMenuRef.current = trimmedMenu;
+      setIsAiChecking(true);
+      try {
+        const res = await inspectVendorWithAi(formData.name, trimmedMenu);
+        setAiInspection(res);
+
+        // カテゴリおよび火気タグを自動反映
+        setFormData(prev => {
+          const newTags = new Set(prev.tags || []);
+          if (res.hasFireAppliance) {
+            newTags.add('火気使用(要消火器)');
+          } else {
+            newTags.delete('火気使用(要消火器)');
+          }
+
+          return {
+            ...prev,
+            category: res.category,
+            tags: Array.from(newTags)
+          };
+        });
+      } catch (err) {
+        console.warn('Auto AI inspection error:', err);
+      } finally {
+        setIsAiChecking(false);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [formData.menuItems, formData.name]);
+
+  // 2. 屋号・店名の五十音順読みを裏側で自動判別（ボタン不要で自動設定）
+  useEffect(() => {
+    const trimmedName = formData.name.trim();
+    if (!trimmedName || trimmedName === lastCheckedNameRef.current) return;
+
+    const timer = setTimeout(async () => {
+      lastCheckedNameRef.current = trimmedName;
+      try {
+        const aiReading = await inferVendorReadingWithAi(trimmedName);
+        if (aiReading) {
+          setFormData(prev => ({ ...prev, readingFurigana: aiReading }));
+        }
+      } catch (err) {
+        console.warn('Auto reading inference error:', err);
+      }
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [formData.name]);
 
   const isBanned = formData.status === 'banned';
   const isWarning = formData.status === 'warning';
@@ -121,7 +197,7 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
               )}
             </div>
 
-            {/* 基本情報 */}
+            {/* 基本情報（屋号 & 代表者名） */}
             <div className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -135,7 +211,7 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
                       setFormData(prev => ({ 
                         ...prev, 
                         name: newName,
-                        readingFurigana: prev.readingFurigana || autoReading
+                        readingFurigana: autoReading || prev.readingFurigana
                       }));
                     }}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold"
@@ -143,42 +219,6 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
                     required
                   />
                 </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-slate-400 font-semibold flex items-center gap-1">
-                      <span>五十音読み (あいうえお順用)</span>
-                    </label>
-                    <button
-                      type="button"
-                      disabled={isAiInferringReading || !formData.name}
-                      onClick={async () => {
-                        if (!formData.name) return;
-                        setIsAiInferringReading(true);
-                        try {
-                          const aiReading = await inferVendorReadingWithAi(formData.name);
-                          setFormData(prev => ({ ...prev, readingFurigana: aiReading }));
-                        } finally {
-                          setIsAiInferringReading(false);
-                        }
-                      }}
-                      className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-0.5 hover:underline disabled:opacity-50 cursor-pointer"
-                      title="AIが店名の修飾語を判断し、五十音ソート用の読みを自動判定します"
-                    >
-                      <Sparkles className="w-3 h-3" />
-                      <span>{isAiInferringReading ? '判定中...' : '✨AIで自動判定'}</span>
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={formData.readingFurigana || ''}
-                    onChange={(e) => setFormData({ ...formData, readingFurigana: e.target.value })}
-                    placeholder="例: たこげん、べんけい"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono placeholder-slate-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-400 mb-1 font-semibold">代表者氏名 <span className="text-rose-400">*</span></label>
                   <input
@@ -188,16 +228,6 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
                     placeholder="例: 田中 太郎"
                     required
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">代表者フリガナ</label>
-                  <input
-                    type="text"
-                    value={formData.furigana || ''}
-                    onChange={(e) => setFormData({ ...formData, furigana: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                    placeholder="例: タナカ タロウ"
                   />
                 </div>
               </div>
@@ -234,6 +264,7 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
               </div>
             </div>
 
+            {/* 連絡先 & ジャンル */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-slate-400 mb-1 font-semibold">電話番号</label>
@@ -248,16 +279,19 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
               <div>
                 <label className="block text-slate-400 mb-1 font-semibold">出店ジャンル</label>
                 <select
-                  value={formData.category}
+                  value={
+                    formData.category === 'kitchen_car'
+                      ? 'kitchen_car'
+                      : formData.category === 'food' || formData.category === 'drink'
+                      ? 'food'
+                      : 'outdoor'
+                  }
                   onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
                 >
-                  <option value="food">飲食・屋台</option>
                   <option value="kitchen_car">キッチンカー</option>
-                  <option value="drink">ドリンク・カフェ</option>
-                  <option value="goods">クラフト・物販</option>
-                  <option value="game">縁日・ゲーム</option>
-                  <option value="other">その他</option>
+                  <option value="food">飲食露店</option>
+                  <option value="outdoor">屋外出店（物販・体験）</option>
                 </select>
               </div>
             </div>
@@ -276,7 +310,7 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
               <div>
                 <label className="block text-pink-300 mb-1 font-semibold flex items-center gap-1.5">
                   <Instagram className="w-3.5 h-3.5 text-pink-400" />
-                  <span>公式Instagram (アカウント / URL)</span>
+                  <span>公式Instagram</span>
                 </label>
                 <input
                   type="text"
@@ -288,112 +322,68 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-slate-400 mb-1 font-semibold">LINE ID</label>
-                <input
-                  type="text"
-                  value={formData.lineId || ''}
-                  onChange={(e) => setFormData({ ...formData, lineId: e.target.value })}
-                  placeholder="例: line_id_123"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono"
-                />
-              </div>
-              <div>
-                <label className="block text-slate-400 mb-1 font-semibold">住所・所在地</label>
-                <input
-                  type="text"
-                  value={formData.address || ''}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="例: 和歌山県田辺市..."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                />
-              </div>
+            <div>
+              <label className="block text-slate-400 mb-1 font-semibold">住所・所在地</label>
+              <input
+                type="text"
+                value={formData.address || ''}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="例: 和歌山県田辺市..."
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+              />
             </div>
 
-            {/* 出店品目・メニュー & 裏側AI判定 */}
+            {/* 出店品目・メニュー & 裏側AI完全自動判定 */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-slate-400 font-semibold">出店品目・メニュー</label>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!formData.menuItems.trim()) {
-                      alert('品目・メニューを入力してください。');
-                      return;
-                    }
-                    setIsAiChecking(true);
-                    try {
-                      const res = await inspectVendorWithAi(formData.name, formData.menuItems);
-                      setAiInspection(res);
-                    } catch (e) {
-                      console.error(e);
-                    } finally {
-                      setIsAiChecking(false);
-                    }
-                  }}
-                  disabled={isAiChecking || !formData.menuItems.trim()}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500/20 to-indigo-500/20 hover:from-amber-500/30 hover:to-indigo-500/30 text-amber-300 text-[11px] font-bold border border-amber-500/40 transition disabled:opacity-40"
-                  title="品目からジャンルや火気リスクを裏側AIで推論"
-                >
-                  <Sparkles className={`w-3.5 h-3.5 ${isAiChecking ? 'animate-spin text-indigo-400' : 'text-amber-400'}`} />
-                  <span>{isAiChecking ? '裏でAI判定中...' : '裏側AIで自動判定'}</span>
-                </button>
-              </div>
+              <label className="block text-slate-400 font-semibold">出店品目・メニュー</label>
               <input
                 type="text"
                 value={formData.menuItems}
-                onChange={(e) => {
-                  setFormData({ ...formData, menuItems: e.target.value });
-                  setAiInspection(null);
-                }}
+                onChange={(e) => setFormData({ ...formData, menuItems: e.target.value })}
                 placeholder="例: たこ焼き、唐揚げ、生ビールなど"
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
               />
 
-              {/* AI判定結果サジェスト */}
-              {aiInspection && (
-                <div className="p-3 rounded-xl bg-slate-800/90 border border-indigo-500/50 space-y-2 animate-in fade-in">
+              {/* 判定中アニメーションインジケーター */}
+              {isAiChecking && (
+                <div className="flex items-center gap-1.5 text-indigo-300 text-[11px] py-1 animate-pulse">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
+                  <span>裏側AIが品目からジャンル・火気リスクを自動判別中...</span>
+                </div>
+              )}
+
+              {/* AI自動判定結果のスマート表示（ボタンを押さずとも自動適用済み） */}
+              {aiInspection && !isAiChecking && (
+                <div className="p-3 rounded-xl bg-slate-800/80 border border-indigo-500/40 space-y-1.5 animate-in fade-in">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      裏側AIの推論結果
+                      裏側AI自動判別済み (適用中)
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData({
-                          ...formData,
-                          category: aiInspection.category,
-                          tags: Array.from(new Set([
-                            ...formData.tags,
-                            ...(aiInspection.hasFireAppliance ? ['火気使用(要消火器)'] : [])
-                          ]))
-                        });
-                        alert(`AIの判定結果（カテゴリ: ${aiInspection.category}、火気情報）を反映しました！`);
-                      }}
-                      className="text-[11px] px-2 py-0.5 rounded bg-indigo-500 hover:bg-indigo-400 text-white font-bold transition"
-                    >
-                      この判定を適用する
-                    </button>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      aiInspection.fireSafetyRisk === 'high'
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    }`}>
+                      {aiInspection.fireSafetyRisk === 'high' ? '⚠️ 火気あり(要消火器)' : '✅ 安全(火気なし)'}
+                    </span>
                   </div>
-                  <div className="text-[11px] text-slate-300 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span>推奨ジャンル: <strong className="text-amber-300">{aiInspection.category}</strong></span>
-                      <span className="text-slate-600">|</span>
-                      <span>火気安全リスク: <strong className={aiInspection.fireSafetyRisk === 'high' ? 'text-rose-400' : aiInspection.fireSafetyRisk === 'medium' ? 'text-amber-400' : 'text-emerald-400'}>{aiInspection.fireSafetyRisk.toUpperCase()}</strong></span>
-                      <span className="text-slate-600">|</span>
-                      <span>消火器: <strong className={aiInspection.requiresFireExtinguisher ? 'text-rose-400' : 'text-slate-400'}>{aiInspection.requiresFireExtinguisher ? '設置義務あり' : '不要'}</strong></span>
-                    </div>
+                  <div className="text-[11px] text-slate-300 flex items-center gap-2 flex-wrap">
+                    <span>自動設定ジャンル: <strong className="text-amber-300">{categoryLabels[aiInspection.category] || aiInspection.category}</strong></span>
+                    <span className="text-slate-600">|</span>
+                    <span>消火器: <strong className={aiInspection.requiresFireExtinguisher ? 'text-rose-400' : 'text-slate-400'}>{aiInspection.requiresFireExtinguisher ? '設置義務あり' : '不要'}</strong></span>
                     {aiInspection.suggestedAppliances.length > 0 && (
-                      <div className="text-slate-400">
-                        推定熱源: {aiInspection.suggestedAppliances.map(a => `${a.name} (${a.fuel})`).join(', ')}
-                      </div>
+                      <>
+                        <span className="text-slate-600">|</span>
+                        <span>推定熱源: <span className="text-slate-200">{aiInspection.suggestedAppliances.map(a => `${a.name} (${a.fuel})`).join(', ')}</span></span>
+                      </>
                     )}
-                    <div className="text-slate-400 text-[10px] bg-slate-900/60 p-1.5 rounded border border-slate-800">
+                  </div>
+                  {aiInspection.reason && (
+                    <div className="text-[10px] text-slate-400 bg-slate-900/60 p-1.5 rounded border border-slate-800">
                       💡 {aiInspection.reason}
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>

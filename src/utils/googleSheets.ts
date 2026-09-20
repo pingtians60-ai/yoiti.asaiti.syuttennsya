@@ -333,17 +333,15 @@ export function buildVendorsAndEntriesFromSheet(
     const menuItems = getVal(mapping.menuItemsCol) || '出店品目未定';
     const notes = getVal(mapping.notesCol);
 
-    // カテゴリ判定
+    // カテゴリ判定（キッチンカー / 飲食露店 / 屋外出店（物販・体験））
     let category: Vendor['category'] = 'food';
     const catSearch = (categoryRaw + ' ' + menuItems).toLowerCase();
     if (/キッチンカー|車両|フードトラック/.test(catSearch)) {
       category = 'kitchen_car';
-    } else if (/ドリンク|カフェ|生ビール|珈琲|お酒|アルコール|ジュース/.test(catSearch)) {
-      category = 'drink';
-    } else if (/雑貨|クラフト|ハンドメイド|物販|アクセサリー|服|陶器/.test(catSearch)) {
-      category = 'goods';
-    } else if (/縁日|ゲーム|スーパーボール|射的|くじ|体験|ワークショップ/.test(catSearch)) {
-      category = 'game';
+    } else if (/物販|体験|雑貨|クラフト|ハンドメイド|アクセサリー|服|陶器|屋外|縁日|ゲーム|スーパーボール|射的|くじ|ワークショップ/.test(catSearch) && !/焼き|揚げ|たこ焼き|ラーメン|カレー|丼|肉/.test(catSearch)) {
+      category = 'outdoor';
+    } else {
+      category = 'food';
     }
 
     // 火気使用判定
@@ -376,10 +374,8 @@ export function buildVendorsAndEntriesFromSheet(
     let boothArea: BoothArea = 'OUTDOOR';
     if (category === 'kitchen_car' || /キッチン|キッチンカー|kitchen|car/i.test(areaVal)) {
       boothArea = 'KITCHEN_CAR';
-    } else if (/飲食|露店|食品|フード|food|酒|drink/i.test(areaVal) || category === 'food' || category === 'drink') {
+    } else if (category === 'food' || /飲食|露店|食品|フード|food|酒|drink/i.test(areaVal)) {
       boothArea = 'FOOD_STALL';
-    } else if (/屋外|物販|体験|クラフト|雑貨|ワークショップ|ゲーム|縁日/i.test(areaVal) || category === 'goods' || category === 'game') {
-      boothArea = 'OUTDOOR';
     } else {
       boothArea = 'OUTDOOR';
     }

@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
 export interface VendorInspectionResult {
-  category: 'food' | 'drink' | 'kitchen_car' | 'goods' | 'game' | 'other';
+  category: 'kitchen_car' | 'food' | 'outdoor';
   hasFireAppliance: boolean;
   requiresFireExtinguisher: boolean;
   fireSafetyRisk: 'high' | 'medium' | 'none';
@@ -45,15 +45,11 @@ function fallbackInspectVendor(name: string, menu: string): VendorInspectionResu
   const text = `${name} ${menu}`.toLowerCase();
 
   const isKitchenCar = /キッチンカー|フードトラック|移動販売車|号車/.test(text);
-  const isDrink = /ドリンク|ジュース|珈琲|コーヒー|お茶|タピオカ|レモネード|ビール|酒|スムージー/.test(text) && !/焼き|揚げ|ラーメン/.test(text);
-  const isGame = /射的|スーパーボール|くじ|ヨーヨー|輪投げ|おもちゃ|ガチャ/.test(text);
-  const isGoods = /雑貨|アクセサリ|ハンドメイド|服|工芸|植物|花|ワークショップ/.test(text);
+  const isOutdoor = /雑貨|アクセサリ|ハンドメイド|服|工芸|植物|花|ワークショップ|体験|射的|スーパーボール|くじ|ヨーヨー|輪投げ|おもちゃ|ガチャ|物販/.test(text) && !/たこ焼き|焼きそば|お好み焼き|串焼き|焼き鳥|ステーキ|から揚げ|唐揚げ|フライドポテト|ラーメン|餃子|天ぷら|フランクフルト|五平餅|ビール|酒|ドリンク|珈琲/.test(text);
 
   let category: VendorInspectionResult['category'] = 'food';
   if (isKitchenCar) category = 'kitchen_car';
-  else if (isDrink) category = 'drink';
-  else if (isGame) category = 'game';
-  else if (isGoods) category = 'goods';
+  else if (isOutdoor) category = 'outdoor';
 
   // 火気判定
   const needsGas = /たこ焼き|焼きそば|お好み焼き|串焼き|焼き鳥|ステーキ|から揚げ|唐揚げ|フライドポテト|ラーメン|餃子|天ぷら|フランクフルト|五平餅/.test(text);
@@ -216,10 +212,15 @@ export async function handleAiApiRequest(
       const prompt = `出店者の屋号:「${body.name || '未定'}」
 販売品目・メニュー:「${body.menuItems || '未定'}」
 
-上記の情報から、夜市・地域イベントにおける出店区分や火気安全リスクを判定してください。
+出店区分（ジャンル）および火気安全リスクを判定してください。
+categoryは必ず次の3つのいずれか1つを指定してください:
+- "kitchen_car"（キッチンカー・移動販売車）
+- "food"（飲食露店・調理・ドリンク含む食品）
+- "outdoor"（屋外出店（物販・体験・縁日・クラフト・その他））
+
 回答は必ず以下の純粋なJSONオブジェクトのみを出力してください（Markdownの\`\`\`json等の装飾は不要です）:
 {
-  "category": "food" | "drink" | "kitchen_car" | "goods" | "game" | "other",
+  "category": "kitchen_car" | "food" | "outdoor",
   "hasFireAppliance": boolean,
   "requiresFireExtinguisher": boolean,
   "fireSafetyRisk": "high" | "medium" | "none",
@@ -245,6 +246,49 @@ export async function handleAiApiRequest(
         // AIパース失敗時はヒューリスティックにフォールバック
         const result = fallbackInspectVendor(body.name || '', body.menuItems || '');
         sendJson(res, 200, { ok: true, result, mode: 'fallback' });
+        return true;
+      }
+    }
+
+    // 4. POST /api/ai/infer-reading (屋号の五十音読み判定)
+    if (url === '/api/ai/infer-reading' && req.method === 'POST') {
+      const body = await parseJsonBody<{
+        name: string;
+        clientApiKey?: string;
+      }>(req);
+
+      const effectiveKey = serverApiKey || body.clientApiKey || '';
+      const vendorName = body.name || '';
+
+      if (!vendorName.trim()) {
+        sendJson(res, 200, { ok: true, reading: '' });
+        return true;
+      }
+
+      if (!effectiveKey) {
+        sendJson(res, 200, { ok: true, reading: '', mode: 'no-key' });
+        return true;
+      }
+
+      const prompt = `以下の出店者・屋号について、五十音順（あいうえお順）に並べ替えるための正式な「読み仮名（すべて全角ひらがな）」を判定してください。
+「極旨」「炭火焼き」「本格」「アジアン屋台」などの装飾句・枕詞がある場合は、店名の主要本体（例: 極旨たこ焼き 蛸源 → たこげん、黒潮炭火焼き鳥 弁慶 → べんけい、Coffee Stand Lululu → るるる）の読みを最優先してください。
+回答はひらがなのみ（解説や記号は不要）で出力してください。
+
+出店者名: "${vendorName}"`;
+
+      try {
+        const text = await callGeminiFromBackend(
+          prompt,
+          'あなたは屋号の五十音順よみがなを判定するAIです。ひらがなのみを出力してください。',
+          effectiveKey,
+          'gemini-flash-latest'
+        );
+
+        const cleaned = text.replace(/[^ぁ-んァ-ヶ]/g, '').trim();
+        sendJson(res, 200, { ok: true, reading: cleaned, mode: 'gemini' });
+        return true;
+      } catch (aiErr) {
+        sendJson(res, 200, { ok: true, reading: '', mode: 'fallback' });
         return true;
       }
     }

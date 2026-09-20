@@ -13,6 +13,21 @@
 
 ---
 
+## 🌐 Web公開ページ（GitHub Pages）への変更反映方法
+Antigravityで変更した内容を公開ページに反映するには、以下のいずれかの方法で行えます：
+
+### 方法1：Antigravityに「反映して」と伝える（一番かんたん！）
+- チャットで「**公開ページに反映して**」または「**デプロイして**」と送るだけで、Antigravityが最新版をビルドしてGitHub Pagesへ即座に送信・更新します。
+
+### 方法2：ダブルクリックで手動反映
+- フォルダ内の「**公開ページに反映する.bat**」をダブルクリックするだけで、自動で最新版がビルドされ、GitHub Pagesへ反映されます。
+
+### 方法3：コマンドから実行
+- コマンドプロンプトやターミナルで `npm run deploy` を実行しても同様にデプロイできます。
+
+
+---
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
