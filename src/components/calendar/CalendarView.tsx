@@ -265,39 +265,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* イベントを削除ボタン（夜市全体は削除不可） */}
-          {selectedEvent.name !== '夜市全体' && selectedEvent.id !== 'event-all' && !selectedEvent.name.includes('出店者募集中') && !selectedEvent.name.includes('募集中') && (
-            <button
-              onClick={() => setEventToDelete(selectedEvent)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-800/70 font-bold text-xs shadow-sm transition"
-              title="選択中のイベントを削除"
-            >
-              <Trash2 className="w-4 h-4 text-rose-400" />
-              <span>イベントを削除</span>
-            </button>
-          )}
 
-          <button
-            onClick={() => setEditingTargetEvent(selectedEvent)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-white font-bold text-xs border border-slate-700 shadow-sm transition"
-            title="現在選択中のイベント情報を編集"
-          >
-            <Edit3 className="w-4 h-4 text-amber-400" />
-            <span>イベント詳細編集</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setPrefilledDate(new Date().toISOString().split('T')[0]);
-              setIsCreateModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 transition"
-          >
-            <Plus className="w-4 h-4" />
-            <span>新規イベントを作成</span>
-          </button>
-        </div>
       </div>
 
       {/* カレンダーコントロールバー & グリッド */}
