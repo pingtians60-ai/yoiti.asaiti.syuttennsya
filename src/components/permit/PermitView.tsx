@@ -319,7 +319,7 @@ export const PermitView: React.FC<PermitViewProps> = ({
                         {entry.fee.tentOption && ` / テント貸出 (${entry.fee.tentCount || 1}張り)`}
                       </div>
                       <div className="text-[11px] text-slate-600">
-                        {entry.fee.garbageOption ? 'ゴミ回収サービス込' : 'ゴミ全量各自持ち帰り'}
+                        ゴミ全量各自持ち帰り
                         {entry.fee.equipmentRentalFee > 0 && ' ・その他備品貸出あり'}
                       </div>
                     </div>

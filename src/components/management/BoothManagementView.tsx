@@ -89,7 +89,6 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
       'テント利用',
       'テント料',
       'テント張り数',
-      'ゴミ回収料',
       '備品レンタル',
       '割引',
       '合計金額',
@@ -111,7 +110,6 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
       e.fee.tentOption ? 'あり' : 'なし',
       e.fee.tentFee || 0,
       e.fee.tentCount || (e.fee.tentOption ? 1 : 0),
-      e.fee.garbageFee,
       e.fee.equipmentRentalFee,
       e.fee.discount,
       e.fee.totalAmount,
@@ -136,7 +134,6 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
       (Number(fee.baseFee) || 0) + 
       (fee.powerOption ? (Number(fee.powerFee) || 0) : 0) + 
       (fee.tentOption ? (Number(fee.tentFee) || 0) : 0) + 
-      (fee.garbageOption ? (Number(fee.garbageFee) || 0) : 0) + 
       (Number(fee.equipmentRentalFee) || 0) - 
       (Number(fee.discount) || 0);
     return {
@@ -182,7 +179,7 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
             出店管理（ブース配置場所・出店金額・入金）
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            各店舗のブース番号、基本料金、電源・ゴミ等のオプション料金の自動計算、入金状況を一元管理します。
+            各店舗のブース番号、基本料金、電源・テント等のオプション料金の自動計算、入金状況を一元管理します。
           </p>
         </div>
 
@@ -449,11 +446,6 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
                           <div className="flex items-center gap-1 text-sky-400 font-medium">
                             <Tent className="w-3 h-3 text-sky-400 shrink-0" />
                             <span>テント（重り付き）: +¥{(entry.fee.tentFee ?? ((entry.fee.tentCount || 1) * 2000)).toLocaleString()} ({entry.fee.tentCount || 1}個)</span>
-                          </div>
-                        )}
-                        {entry.fee.garbageOption && (
-                          <div className="text-slate-400">
-                            ゴミ回収: +¥{entry.fee.garbageFee.toLocaleString()}
                           </div>
                         )}
                         {entry.fee.equipmentRentalFee > 0 && (
@@ -1018,40 +1010,6 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
                   )}
                 </div>
 
-                {/* ゴミ回収オプション */}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-700/60">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editingEntry.fee.garbageOption}
-                      onChange={(e) => setEditingEntry({
-                        ...editingEntry,
-                        fee: recalculateFee({
-                          ...editingEntry.fee,
-                          garbageOption: e.target.checked,
-                          garbageFee: e.target.checked ? (editingEntry.fee.garbageFee || 500) : 0
-                        })
-                      })}
-                      className="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-0"
-                    />
-                    <span className="text-slate-300 font-semibold">ゴミ処理・回収サービス</span>
-                  </label>
-                  {editingEntry.fee.garbageOption && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-400">料金: ¥</span>
-                      <input
-                        type="number"
-                        value={editingEntry.fee.garbageFee}
-                        onChange={(e) => setEditingEntry({
-                          ...editingEntry,
-                          fee: recalculateFee({ ...editingEntry.fee, garbageFee: Number(e.target.value) })
-                        })}
-                        className="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-mono"
-                      />
-                    </div>
-                  )}
-                </div>
-
                 {/* 割引 */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-700/60">
                   <span className="text-slate-300">特別割引（地元割・リピート等）</span>
@@ -1293,15 +1251,13 @@ const NewBoothModal: React.FC<NewBoothModalProps> = ({
   const [tentOption, setTentOption] = useState<boolean>(false);
   const [tentCount, setTentCount] = useState<number>(1);
   const [tentFeeInput, setTentFeeInput] = useState<number>(3000);
-  const [garbageOption, setGarbageOption] = useState(true);
 
   const selectedVendor = vendors.find((v) => v.id === selectedVendorId);
   const areaDef = event.areas.find((a) => a.code === boothArea);
   const baseFee = selectedVendor?.category === 'wcp' ? 0 : (areaDef?.defaultBaseFee || 6000);
   const powerFee = powerOption ? powerFeeInput : 0;
   const tentFee = tentOption ? tentFeeInput : 0;
-  const garbageFee = garbageOption ? 500 : 0;
-  const totalAmount = baseFee + powerFee + tentFee + garbageFee;
+  const totalAmount = baseFee + powerFee + tentFee;
 
   const isBanned = selectedVendor?.status === 'banned';
   const isWarning = selectedVendor?.status === 'warning';
@@ -1331,8 +1287,8 @@ const NewBoothModal: React.FC<NewBoothModalProps> = ({
         tentOption,
         tentCount: tentOption ? tentCount : 0,
         tentFee,
-        garbageOption,
-        garbageFee,
+        garbageOption: false,
+        garbageFee: 0,
         equipmentRentalFee: 0,
         discount: 0,
         totalAmount,
@@ -1612,19 +1568,6 @@ const NewBoothModal: React.FC<NewBoothModalProps> = ({
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* ゴミ回収 */}
-            <div className="pt-2 border-t border-slate-700/60">
-              <label className="flex items-center justify-between cursor-pointer">
-                <span className="text-slate-300">ゴミ回収オプション (+¥500)</span>
-                <input
-                  type="checkbox"
-                  checked={garbageOption}
-                  onChange={(e) => setGarbageOption(e.target.checked)}
-                  className="rounded bg-slate-800 border-slate-700 text-emerald-500"
-                />
-              </label>
             </div>
 
             <div className="pt-2 border-t border-slate-700 flex justify-between font-bold text-sm">

@@ -1515,7 +1515,6 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
   const [tentOption, setTentOption] = useState<boolean>(false);
   const [tentCount, setTentCount] = useState<number>(1);
   const [tentFeeInput, setTentFeeInput] = useState<number>(2000);
-  const [garbageOption, setGarbageOption] = useState(true);
 
   const selectedVendor = vendors.find((v) => v.id === selectedVendorId);
 
@@ -1533,7 +1532,6 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
 
     const powerFee = powerOption ? powerFeeInput : 0;
     const tentFee = tentOption ? tentFeeInput : 0;
-    const garbageFee = garbageOption ? 500 : 0;
 
     const newEntry: EventEntry = {
       id: `entry-${Date.now()}`,
@@ -1550,11 +1548,11 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
         tentOption,
         tentCount: tentOption ? tentCount : 0,
         tentFee,
-        garbageOption,
-        garbageFee,
+        garbageOption: false,
+        garbageFee: 0,
         equipmentRentalFee: 0,
         discount: 0,
-        totalAmount: baseFee + powerFee + tentFee + garbageFee,
+        totalAmount: baseFee + powerFee + tentFee,
         paymentStatus: 'unbilled',
         receiptIssued: false
       },
@@ -1814,24 +1812,11 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
               )}
             </div>
 
-            {/* ゴミ回収 */}
-            <div className="pt-2 border-t border-slate-700/60">
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={garbageOption}
-                  onChange={(e) => setGarbageOption(e.target.checked)}
-                  className="rounded bg-slate-800 text-emerald-500"
-                />
-                <span className="text-xs text-slate-300">ゴミ回収 (+¥500)</span>
-              </label>
-            </div>
-
             {/* 合計請求額 */}
             <div className="pt-2 border-t border-slate-700 flex justify-between items-center text-xs font-bold">
               <span className="text-slate-300">合計請求額:</span>
               <span className="text-emerald-400 font-mono text-sm font-black">
-                ¥{(baseFee + (powerOption ? powerFeeInput : 0) + (tentOption ? tentFeeInput : 0) + (garbageOption ? 500 : 0)).toLocaleString()}
+                ¥{(baseFee + (powerOption ? powerFeeInput : 0) + (tentOption ? tentFeeInput : 0)).toLocaleString()}
               </span>
             </div>
           </div>
