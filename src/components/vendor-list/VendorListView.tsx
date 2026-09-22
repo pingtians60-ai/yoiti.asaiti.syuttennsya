@@ -63,7 +63,6 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<'ALL' | VendorStatus>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'store' | 'organization'>('ALL');
-  const [sortBy, setSortBy] = useState<'kana' | 'count'>('kana'); // デフォルトで五十音順（AI自動判定）
   const [kanaRow, setKanaRow] = useState<string>('ALL');
   const [selectedVendorForDetail, setSelectedVendorForDetail] = useState<Vendor | null>(null);
   const [detailInitialTab, setDetailInitialTab] = useState<'info' | 'fire' | 'permit'>('info');
@@ -105,17 +104,8 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
 
     // 夜市全体表示時は、エントリー（ブース出店）の概念がないため、アクティブ店舗と出禁店舗のみでシンプルに整理
     if (isAllEvent) {
-      let activeList = result.filter((v) => v.status !== 'banned');
-      let bannedList = result.filter((v) => v.status === 'banned');
-
-      if (sortBy === 'kana') {
-        activeList = sortVendorsByJapaneseAlphabet(activeList);
-        bannedList = sortVendorsByJapaneseAlphabet(bannedList);
-      } else if (sortBy === 'count') {
-        activeList = [...activeList].sort((a, b) => b.pastParticipationCount - a.pastParticipationCount);
-        bannedList = [...bannedList].sort((a, b) => b.pastParticipationCount - a.pastParticipationCount);
-      }
-
+      let activeList = sortVendorsByJapaneseAlphabet(result.filter((v) => v.status !== 'banned'));
+      let bannedList = sortVendorsByJapaneseAlphabet(result.filter((v) => v.status === 'banned'));
       return [...activeList, ...bannedList];
     }
 
@@ -125,30 +115,22 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
     );
 
     // 1. 今回のイベントに出店登録（エントリー済）の店舗（一番上に表示）
-    let registeredList = result.filter(
-      (v) => v.status !== 'banned' && registeredVendorIds.has(v.id)
+    let registeredList = sortVendorsByJapaneseAlphabet(
+      result.filter((v) => v.status !== 'banned' && registeredVendorIds.has(v.id))
     );
 
     // 2. 名簿登録店舗・過去出店者（今回のイベントは未登録）
-    let unregisteredList = result.filter(
-      (v) => v.status !== 'banned' && !registeredVendorIds.has(v.id)
+    let unregisteredList = sortVendorsByJapaneseAlphabet(
+      result.filter((v) => v.status !== 'banned' && !registeredVendorIds.has(v.id))
     );
 
     // 3. 出禁・受付不可店舗（最下部）
-    let bannedList = result.filter((v) => v.status === 'banned');
-
-    if (sortBy === 'kana') {
-      registeredList = sortVendorsByJapaneseAlphabet(registeredList);
-      unregisteredList = sortVendorsByJapaneseAlphabet(unregisteredList);
-      bannedList = sortVendorsByJapaneseAlphabet(bannedList);
-    } else if (sortBy === 'count') {
-      registeredList = [...registeredList].sort((a, b) => b.pastParticipationCount - a.pastParticipationCount);
-      unregisteredList = [...unregisteredList].sort((a, b) => b.pastParticipationCount - a.pastParticipationCount);
-      bannedList = [...bannedList].sort((a, b) => b.pastParticipationCount - a.pastParticipationCount);
-    }
+    let bannedList = sortVendorsByJapaneseAlphabet(
+      result.filter((v) => v.status === 'banned')
+    );
 
     return [...registeredList, ...unregisteredList, ...bannedList];
-  }, [vendors, entries, searchTerm, statusFilter, categoryFilter, typeFilter, kanaRow, sortBy, isAllEvent]);
+  }, [vendors, entries, searchTerm, statusFilter, categoryFilter, typeFilter, kanaRow, isAllEvent]);
 
   // エントリー登録ID一覧のメモ化
   const registeredVendorIds = useMemo(() => {
@@ -195,7 +177,6 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
       '出店カテゴリ',
       '主な出店品目',
       '食品営業許可番号',
-      '過去出店回数',
       '運営メモ'
     ];
 
@@ -210,7 +191,6 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
       v.category,
       `"${v.menuItems.replace(/"/g, '""')}"`,
       v.foodLicenseNumber || '',
-      v.pastParticipationCount,
       `"${(v.internalNotes || '').replace(/"/g, '""')}"`
     ]);
 
@@ -457,30 +437,11 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-xs text-slate-400 font-medium mr-1 flex items-center gap-1">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>並び替え:</span>
+            <span>並び順:</span>
           </span>
-          <button
-            type="button"
-            onClick={() => setSortBy('kana')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
-              sortBy === 'kana'
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
-                : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300 border-slate-700'
-            }`}
-          >
-            <span>あいうえお五十音順（AI自動判定）</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setSortBy('count')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
-              sortBy === 'count'
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold shadow-sm'
-                : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300 border-slate-700'
-            }`}
-          >
-            <span>出店回数順</span>
-          </button>
+          <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+            あいうえお五十音順（AI自動判定）
+          </span>
         </div>
 
         {/* 五十音インデックスボタン群 */}
@@ -623,18 +584,13 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                         <span className="truncate">{vendor.name}</span>
                       </h3>
 
-                      <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                        {vendor.ownerName && vendor.ownerName.trim() ? (
+                      {vendor.ownerName && vendor.ownerName.trim() ? (
+                        <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
                           <span>
                             代表: <strong className="text-slate-300 font-medium">{vendor.ownerName}</strong>
                           </span>
-                        ) : null}
-                        {vendor.pastParticipationCount > 0 && (
-                          <span className="text-slate-500 text-[11px]">
-                            (出店{vendor.pastParticipationCount}回)
-                          </span>
-                        )}
-                      </div>
+                        </div>
+                      ) : null}
                     </div>
 
                     {/* 主な出店品目 */}

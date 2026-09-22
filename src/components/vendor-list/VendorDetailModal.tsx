@@ -944,42 +944,29 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
               </div>
 
               {/* 過去の参加履歴 */}
-              <div className="pt-4 space-y-3">
-                <h3 className="text-xs font-black tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
-                  <History className="w-4 h-4 text-amber-400" />
-                  <span>過去の参加実績・出店履歴</span>
-                </h3>
+              {vendor.pastEvents && vendor.pastEvents.length > 0 && (
+                <div className="pt-4 space-y-3">
+                  <h3 className="text-xs font-black tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
+                    <History className="w-4 h-4 text-amber-400" />
+                    <span>過去の出店履歴</span>
+                  </h3>
 
-                <div className="p-4 rounded-2xl bg-slate-850 border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">通算参加回数:</span>
-                    <strong className="text-amber-400 font-bold text-sm font-mono">
-                      {vendor.pastParticipationCount} 回
-                    </strong>
+                  <div className="p-4 rounded-2xl bg-slate-850 border border-slate-800 space-y-2">
+                    <span className="text-[11px] text-slate-400 block">参加イベント一覧:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {vendor.pastEvents.map((evName, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1"
+                        >
+                          <span>🏮</span>
+                          <span>{evName}</span>
+                        </span>
+                      ))}
+                    </div>
                   </div>
-
-                  {vendor.pastEvents && vendor.pastEvents.length > 0 ? (
-                    <div className="pt-2 border-t border-slate-800 space-y-1.5">
-                      <span className="text-[11px] text-slate-400 block">参加イベント一覧:</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {vendor.pastEvents.map((evName, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1"
-                          >
-                            <span>🏮</span>
-                            <span>{evName}</span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-[11px] text-slate-500 pt-1">
-                      ※ 過去イベントの個別記録はまだありません。
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
 
               {/* 運営メモ（内部用） */}
               {vendor.internalNotes && (

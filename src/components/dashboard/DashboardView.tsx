@@ -528,16 +528,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           )}
                         </div>
                         <div className="text-xs text-slate-400 flex flex-wrap gap-x-3 gap-y-0.5">
-                          <span>代表: {v.ownerName}</span>
-                          <span>TEL: {v.phone}</span>
+                          {v.ownerName && <span>代表: {v.ownerName}</span>}
+                          {v.phone && <span>TEL: {v.phone}</span>}
                           {v.menuItems && <span>品目: {v.menuItems}</span>}
                         </div>
                       </div>
                       <div className="text-left sm:text-right shrink-0">
-                        <span className="text-xs font-mono font-bold text-amber-400 block">
-                          参加 {v.pastParticipationCount}回
+                        <span className="text-[11px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                          名簿登録済
                         </span>
-                        <span className="text-[10px] text-slate-400">名簿登録済</span>
                       </div>
                     </div>
                   );
