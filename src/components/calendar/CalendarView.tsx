@@ -605,10 +605,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             {/* マスター名簿の統計カード */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/80">
-                <div className="text-xs text-slate-400 font-medium">過去出店店舗</div>
+                <div className="text-xs text-slate-400 font-medium">過去出店者</div>
                 <div className="text-2xl font-black text-amber-400 font-mono mt-1 flex items-baseline gap-1.5">
                   <span>{vendors.filter(v => !isVendorOrganization(v)).length}</span>
-                  <span className="text-xs font-normal text-slate-400">店舗</span>
+                  <span className="text-xs font-normal text-slate-400">件</span>
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1">一般出店店舗（飲食店・物販等）</div>
               </div>

@@ -365,8 +365,8 @@ CREATE POLICY "Allow anon all on yoichi_entries" ON public.yoichi_entries FOR AL
                 <div className="text-base font-black text-white font-mono">{events.length} 件</div>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-center">
-                <div className="text-[10px] text-slate-400">過去出店店舗</div>
-                <div className="text-base font-black text-amber-400 font-mono">{vendors.length} 店舗</div>
+                <div className="text-[10px] text-slate-400">過去出店者</div>
+                <div className="text-base font-black text-amber-400 font-mono">{vendors.length} 件</div>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-center">
                 <div className="text-[10px] text-slate-400">ブース配置</div>

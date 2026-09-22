@@ -203,7 +203,7 @@ export const Header: React.FC<HeaderProps> = ({
               <>
                 <div className="flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 whitespace-nowrap shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                  <span>店舗: <strong className="text-white font-semibold">{entryStats.storeCount ?? (entryStats.total - (entryStats.organizationCount ?? 0))}</strong></span>
+                  <span>過去出店者: <strong className="text-white font-semibold">{entryStats.storeCount ?? (entryStats.total - (entryStats.organizationCount ?? 0))}</strong></span>
                 </div>
                 <div className="flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg bg-emerald-950/50 border border-emerald-800/70 text-emerald-300 whitespace-nowrap shrink-0">
                   <Building2 className="w-3 h-3 text-emerald-400" />

@@ -155,7 +155,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
     return new Set(entries.map((e) => e.vendorId || e.vendorSnapshot?.id).filter(Boolean));
   }, [entries]);
 
-  // グループ別リスト（最上部: 登録団体一覧、中間上: 一般出店登録店舗、中間下: 一般未登録店舗、最下部: 出禁店舗）
+  // グループ別リスト（最上部: 登録団体一覧、中間上: 過去出店者、中間下: 一般未登録店舗、最下部: 出禁店舗）
   const organizationVendors = useMemo(
     () => filteredVendors.filter((v) => v.status !== 'banned' && isVendorOrganization(v)),
     [filteredVendors]
@@ -302,7 +302,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
           <p className="text-xs text-slate-400 mt-1">
             {isAllEvent
               ? '過去の全出店実績、登録団体、トラブル・マナー違反による出禁や要注意フラグを一括管理します。※特定イベントへの出店（エントリー）は各イベントを選択して行います。'
-              : 'このイベントに出店エントリーしている店舗と、過去の名簿登録店舗を確認できます。'}
+              : 'このイベントに出店エントリーしている出店者と、過去出店者を確認できます。'}
           </p>
         </div>
 
@@ -514,7 +514,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
         </div>
       </div>
 
-      {/* 出店者リスト表示領域（出店登録店舗は一番上、未登録店舗は中間、出禁店舗は最下部） */}
+      {/* 出店者リスト表示領域（過去出店者は一番上、未登録店舗は中間、出禁店舗は最下部） */}
       {filteredVendors.length === 0 ? (
         <div className="py-12 text-center text-slate-500 text-xs bg-slate-900/40 rounded-2xl border border-slate-800">
           条件に一致する出店者が見つかりませんでした。
@@ -798,11 +798,11 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                         <span className="w-2 h-2 rounded-full bg-amber-500/70 inline-block" />
                         <h3 className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
                           <Store className="w-4 h-4 text-amber-500/80" />
-                          <span>過去出店店舗 ({storeVendors.length}店舗)</span>
+                          <span>過去出店者 ({storeVendors.length}件)</span>
                         </h3>
                       </div>
                       <span className="text-xs text-slate-400 bg-slate-850 border border-slate-800 px-2.5 py-0.5 rounded-full font-medium">
-                        過去出店店舗マスター・五十音順
+                        過去出店者マスター・五十音順
                       </span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -819,11 +819,11 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                         <span className="w-2 h-2 rounded-full bg-amber-500/70 inline-block" />
                         <h3 className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
                           <Store className="w-4 h-4 text-amber-500/80" />
-                          <span>本イベント出店登録店舗 ({registeredStores.length}件)</span>
+                          <span>過去出店者 ({registeredStores.length}件)</span>
                         </h3>
                       </div>
                       <span className="text-xs text-slate-400 bg-slate-850 border border-slate-800 px-2.5 py-0.5 rounded-full font-medium">
-                        出店登録済・五十音順
+                        出店エントリー済・五十音順
                       </span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -841,10 +841,10 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                           <span className="w-2 h-2 rounded-full bg-slate-500 inline-block" />
                           <h3 className="text-sm font-bold text-slate-300 flex items-center gap-1.5">
                             <Users className="w-4 h-4 text-slate-400" />
-                            <span>登録店舗名簿・過去出店者（未エントリー: {unregisteredStores.length}件）</span>
+                            <span>過去出店者（未エントリー: {unregisteredStores.length}件）</span>
                           </h3>
                         </div>
-                        <span className="text-xs text-slate-400">名簿登録済・五十音順</span>
+                        <span className="text-xs text-slate-400">過去出店者名簿・五十音順</span>
                       </div>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
