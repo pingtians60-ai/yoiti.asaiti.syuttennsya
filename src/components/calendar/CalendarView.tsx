@@ -469,6 +469,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <span className="text-xs font-bold text-slate-400 whitespace-nowrap">切り替え:</span>
             {events.map((ev) => {
               const isSelected = ev.id === selectedEvent.id;
+              const isAll = ev.id === 'event-all' || ev.name === '夜市全体';
               const count = entries.filter((e) => e.eventId === ev.id).length;
               return (
                 <button
@@ -482,7 +483,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 >
                   <span>🏮 {ev.name}</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-black/30 text-slate-950' : 'bg-slate-700 text-slate-300'}`}>
-                    {ev.date} ({count}店舗)
+                    {isAll ? `(マスター名簿: ${vendors.length}件)` : `${ev.date} (${count}店舗)`}
                   </span>
                 </button>
               );
@@ -580,45 +581,164 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
-        {/* 統計ミニカード（3つのみ） */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/80">
-            <div className="text-xs text-slate-400 font-medium">参加出店ブース数</div>
-            <div className="text-2xl font-black text-white font-mono mt-1 flex items-baseline gap-1.5">
-              <span>{currentEventEntries.length}</span>
-              <span className="text-xs font-normal text-slate-400">店舗</span>
+        {isSelectedAll ? (
+          /* ========================================================================= */
+          /* 夜市全体（出店者マスターポータル）表示：エントリーは存在しないため名簿案内を表示 */
+          /* ========================================================================= */
+          <div className="space-y-6">
+            {/* 案内バナー */}
+            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-slate-900 border border-amber-500/30 rounded-2xl p-5 text-slate-300 shadow-xl flex items-start gap-4">
+              <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl shrink-0 mt-0.5">
+                <Users className="w-6 h-6" />
+              </div>
+              <div className="space-y-1.5">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>現在は「夜市全体（過去の出店者マスター名簿）」が表示されています</span>
+                </h4>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  「夜市全体」は過去の全出店者・登録団体をまとめたマスター名簿です。特定の日程を持たないため、出店エントリーやブース配置はありません。<br />
+                  各開催日の出店ブース配置・出店料・消防安全・出店許可証を管理する場合は、上のカレンダーまたは下記の開催イベント一覧から日付を選択してください。
+                </p>
+              </div>
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">
-              確定: <strong className="text-emerald-400">{currentEventEntries.filter((e) => e.entryStatus === 'confirmed').length}</strong> 店舗
+
+            {/* マスター名簿の統計カード */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/80">
+                <div className="text-xs text-slate-400 font-medium">過去出店店舗</div>
+                <div className="text-2xl font-black text-amber-400 font-mono mt-1 flex items-baseline gap-1.5">
+                  <span>{vendors.filter(v => !isVendorOrganization(v)).length}</span>
+                  <span className="text-xs font-normal text-slate-400">店舗</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">一般出店店舗（飲食店・物販等）</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/80">
+                <div className="text-xs text-slate-400 font-medium">登録団体マスター</div>
+                <div className="text-2xl font-black text-emerald-400 font-mono mt-1 flex items-baseline gap-1.5">
+                  <span>{vendors.filter(isVendorOrganization).length}</span>
+                  <span className="text-xs font-normal text-slate-400">団体</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">地域連携・協力団体枠</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/80">
+                <div className="text-xs text-slate-400 font-medium">出禁・要注意指定</div>
+                <div className="text-2xl font-black text-rose-400 font-mono mt-1 flex items-baseline gap-1.5">
+                  <span>{vendors.filter(v => v.status === 'banned' || v.status === 'warning').length}</span>
+                  <span className="text-xs font-normal text-slate-400">件</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  出禁: {vendors.filter(v => v.status === 'banned').length} / 要注意: {vendors.filter(v => v.status === 'warning').length}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/80">
+                <div className="text-xs text-slate-400 font-medium">開催予定イベント</div>
+                <div className="text-2xl font-black text-sky-400 font-mono mt-1 flex items-baseline gap-1.5">
+                  <span>{events.filter(e => e.id !== 'event-all' && e.name !== '夜市全体' && !!e.date).length}</span>
+                  <span className="text-xs font-normal text-slate-400">回 登録済</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">日程別ブース管理</div>
+              </div>
+            </div>
+
+            {/* 開催イベント選択リスト（ブース管理へ進むリンク） */}
+            <div className="bg-slate-950/60 rounded-2xl border border-slate-800 p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4 text-amber-400" />
+                  <span>開催イベントを選択して出店・ブース管理を開く</span>
+                </h4>
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>新規イベント作成</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {events
+                  .filter(e => e.id !== 'event-all' && e.name !== '夜市全体' && !!e.date)
+                  .map(ev => {
+                    const count = entries.filter(e => e.eventId === ev.id).length;
+                    return (
+                      <div
+                        key={ev.id}
+                        onClick={() => {
+                          onSelectEvent(ev.id);
+                          onNavigateTab('management');
+                        }}
+                        className="p-3.5 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 cursor-pointer transition group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sm text-white group-hover:text-amber-300 transition">
+                            🏮 {ev.name}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-amber-400 font-mono font-bold">
+                            {count}ブース
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1.5 flex items-center justify-between">
+                          <span>📅 {ev.date} {ev.time ? `(${ev.time})` : ''}</span>
+                          <span className="text-amber-400 font-semibold group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
+                            出店管理へ <ArrowRight className="w-3 h-3" />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                {events.filter(e => e.id !== 'event-all' && e.name !== '夜市全体' && !!e.date).length === 0 && (
+                  <div className="col-span-full py-8 text-center text-xs text-slate-400">
+                    登録された開催イベントがまだありません。カレンダーの日付をクリックするか「新規イベント作成」から開催日を作成してください。
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+        ) : (
+          <>
+            {/* 統計ミニカード（3つのみ） */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/80">
+                <div className="text-xs text-slate-400 font-medium">参加出店ブース数</div>
+                <div className="text-2xl font-black text-white font-mono mt-1 flex items-baseline gap-1.5">
+                  <span>{currentEventEntries.length}</span>
+                  <span className="text-xs font-normal text-slate-400">店舗</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  確定: <strong className="text-emerald-400">{currentEventEntries.filter((e) => e.entryStatus === 'confirmed').length}</strong> 店舗
+                </div>
+              </div>
 
-          <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/80">
-            <div className="text-xs text-slate-400 font-medium">火気使用ブース</div>
-            <div className="text-2xl font-black text-orange-400 font-mono mt-1 flex items-baseline gap-1.5">
-              <span>{fireCount}</span>
-              <span className="text-xs font-normal text-slate-400">店舗</span>
-            </div>
-            <div className="text-[11px] text-slate-400 mt-1">
-              消火器確認済: <strong className="text-white">{currentEventEntries.filter((e) => e.fireSafety.hasFireAppliance && e.fireSafety.fireExtinguisher.installed).length}</strong> 店舗
-            </div>
-          </div>
+              <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/80">
+                <div className="text-xs text-slate-400 font-medium">火気使用ブース</div>
+                <div className="text-2xl font-black text-orange-400 font-mono mt-1 flex items-baseline gap-1.5">
+                  <span>{fireCount}</span>
+                  <span className="text-xs font-normal text-slate-400">店舗</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  消火器確認済: <strong className="text-white">{currentEventEntries.filter((e) => e.fireSafety.hasFireAppliance && e.fireSafety.fireExtinguisher.installed).length}</strong> 店舗
+                </div>
+              </div>
 
-          <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/80">
-            <div className="text-xs text-slate-400 font-medium">出店料 請求総額</div>
-            <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
-              ¥{totalBilled.toLocaleString()}
+              <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/80">
+                <div className="text-xs text-slate-400 font-medium">出店料 請求総額</div>
+                <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
+                  ¥{totalBilled.toLocaleString()}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  回収済: <strong className="text-white">¥{totalPaid.toLocaleString()}</strong> ({unpaidCount > 0 ? `未収 ${unpaidCount}件` : '全額回収済'})
+                </div>
+              </div>
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">
-              回収済: <strong className="text-white">¥{totalPaid.toLocaleString()}</strong> ({unpaidCount > 0 ? `未収 ${unpaidCount}件` : '全額回収済'})
-            </div>
-          </div>
-        </div>
 
-        {/* ========================================================================= */}
-        {/* このイベントの出店者一覧セクション */}
-        {/* ========================================================================= */}
-        <div className="space-y-4 pt-2">
+            {/* ========================================================================= */}
+            {/* このイベントの出店者一覧セクション */}
+            {/* ========================================================================= */}
+            <div className="space-y-4 pt-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-amber-400" />
@@ -935,21 +1055,25 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
           )}
         </div>
-      </div>
+      </>
+    )}
+  </div>
 
       {/* ========================================================================= */}
       {/* 登録済み全イベント一覧カード */}
       {/* ========================================================================= */}
       <div className="space-y-4">
         <h4 className="text-lg font-black text-white flex items-center gap-2">
-          <span>全イベント一覧</span>
+          <span>開催イベント一覧（日程・ブース管理）</span>
           <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-normal border border-slate-700">
-            {events.length}件登録中
+            {events.filter(e => e.id !== 'event-all' && e.name !== '夜市全体' && !!e.date).length}件 登録中
           </span>
         </h4>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {events.map((ev) => {
+          {events
+            .filter(e => e.id !== 'event-all' && e.name !== '夜市全体' && !!e.date)
+            .map((ev) => {
             const isSelected = ev.id === selectedEvent.id;
             const evBoothCount = entries.filter((en) => en.eventId === ev.id).length;
             const evFireCount = entries.filter((en) => en.eventId === ev.id && en.fireSafety.hasFireAppliance).length;
@@ -1420,10 +1544,10 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
   const [baseFee, setBaseFee] = useState<number>(5000);
   const [powerOption, setPowerOption] = useState(false);
   const [powerWatts, setPowerWatts] = useState<number>(1500);
-  const [powerFeeInput, setPowerFeeInput] = useState<number>(1500);
+  const [powerFeeInput, setPowerFeeInput] = useState<number>(1000);
   const [tentOption, setTentOption] = useState<boolean>(false);
   const [tentCount, setTentCount] = useState<number>(1);
-  const [tentFeeInput, setTentFeeInput] = useState<number>(3000);
+  const [tentFeeInput, setTentFeeInput] = useState<number>(2000);
   const [garbageOption, setGarbageOption] = useState(true);
 
   const selectedVendor = vendors.find((v) => v.id === selectedVendorId);
@@ -1565,12 +1689,17 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
                   <input
                     type="checkbox"
                     checked={powerOption}
-                    onChange={(e) => setPowerOption(e.target.checked)}
+                    onChange={(e) => {
+                      setPowerOption(e.target.checked);
+                      if (e.target.checked) {
+                        setPowerFeeInput(1000);
+                      }
+                    }}
                     className="rounded bg-slate-800 text-amber-500"
                   />
                   <span className="text-slate-200 font-bold flex items-center gap-1">
                     <Zap className="w-3.5 h-3.5 text-amber-400" />
-                    電源利用
+                    電源利用（一律 ¥1,000）
                   </span>
                 </label>
                 {powerOption && (
@@ -1580,92 +1709,140 @@ const AddVendorToEventModal: React.FC<AddVendorToEventModalProps> = ({
                 )}
               </div>
               {powerOption && (
-                <div className="flex items-center gap-1.5 pl-5 text-xs">
+                <div className="flex items-center gap-2 pl-5 text-xs flex-wrap">
+                  <span className="text-slate-400 text-[11px]">使用容量:</span>
                   {[
-                    { watts: 500, fee: 1000 },
-                    { watts: 1000, fee: 1500 },
-                    { watts: 1500, fee: 2000 }
+                    { watts: 500, label: '500W' },
+                    { watts: 1000, label: '1000W' },
+                    { watts: 1500, label: '1500W' }
                   ].map((p) => (
                     <button
                       key={p.watts}
                       type="button"
                       onClick={() => {
                         setPowerWatts(p.watts);
-                        setPowerFeeInput(p.fee);
+                        setPowerFeeInput(1000);
                       }}
                       className={`px-2 py-0.5 rounded border text-[10px] font-bold ${
-                        powerFeeInput === p.fee && powerWatts === p.watts
+                        powerWatts === p.watts
                           ? 'bg-amber-500 text-slate-950 border-amber-400 font-black'
-                          : 'bg-slate-800 text-slate-300 border-slate-700'
+                          : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
                       }`}
                     >
-                      {p.watts}W ¥{p.fee.toLocaleString()}
+                      {p.label}
                     </button>
                   ))}
-                  <input
-                    type="number"
-                    step={100}
-                    value={powerFeeInput}
-                    onChange={(e) => setPowerFeeInput(Number(e.target.value))}
-                    className="w-16 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono text-[11px]"
-                    placeholder="¥"
-                  />
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      step={100}
+                      value={powerWatts}
+                      onChange={(e) => setPowerWatts(Number(e.target.value))}
+                      className="w-16 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono text-[11px]"
+                      placeholder="W"
+                    />
+                    <span className="text-slate-400 text-[11px]">W</span>
+                  </div>
+                  <span className="text-slate-400 text-[10px]">※ワット数に関わらず一律 ¥1,000</span>
                 </div>
               )}
             </div>
 
             {/* テント利用 */}
-            <div className="space-y-1.5 pt-2 border-t border-slate-700/60">
+            <div className="space-y-2 pt-2 border-t border-slate-700/60">
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={tentOption}
-                    onChange={(e) => setTentOption(e.target.checked)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setTentOption(checked);
+                      if (checked) {
+                        setTentFeeInput((tentCount || 1) * 2000);
+                      }
+                    }}
                     className="rounded bg-slate-800 text-sky-500"
                   />
                   <span className="text-slate-200 font-bold flex items-center gap-1">
                     <Tent className="w-3.5 h-3.5 text-sky-400" />
-                    テントレンタル
+                    テントレンタル（重り付き）利用
                   </span>
                 </label>
                 {tentOption && (
                   <span className="text-sky-400 font-mono text-xs font-bold">
-                    +¥{tentFeeInput.toLocaleString()} ({tentCount}張)
+                    +¥{tentFeeInput.toLocaleString()} ({tentCount}個)
                   </span>
                 )}
               </div>
               {tentOption && (
-                <div className="flex items-center gap-1.5 pl-5 text-xs">
-                  {[
-                    { count: 1, fee: 3000 },
-                    { count: 2, fee: 5000 },
-                    { count: 3, fee: 7000 }
-                  ].map((p) => (
-                    <button
-                      key={p.count}
-                      type="button"
-                      onClick={() => {
-                        setTentCount(p.count);
-                        setTentFeeInput(p.fee);
-                      }}
-                      className={`px-2 py-0.5 rounded border text-[10px] font-bold ${
-                        tentFeeInput === p.fee && tentCount === p.count
-                          ? 'bg-sky-500 text-slate-950 border-sky-400 font-black'
-                          : 'bg-slate-800 text-slate-300 border-slate-700'
-                      }`}
-                    >
-                      {p.count}張 ¥{p.fee.toLocaleString()}
-                    </button>
-                  ))}
-                  <input
-                    type="number"
-                    step={500}
-                    value={tentFeeInput}
-                    onChange={(e) => setTentFeeInput(Number(e.target.value))}
-                    className="w-16 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono text-[11px]"
-                    placeholder="¥"
-                  />
+                <div className="pl-5 space-y-2 text-xs">
+                  {/* 個数直接入力 */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-slate-300 font-medium">レンタル個数:</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newCount = Math.max(1, tentCount - 1);
+                          setTentCount(newCount);
+                          setTentFeeInput(newCount * 2000);
+                        }}
+                        className="w-6 h-6 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white font-bold flex items-center justify-center text-xs"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={tentCount}
+                        onChange={(e) => {
+                          const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                          setTentCount(val);
+                          setTentFeeInput(val * 2000);
+                        }}
+                        className="w-14 text-center bg-slate-800 border border-sky-500/50 rounded px-1.5 py-0.5 text-white font-mono font-bold text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newCount = tentCount + 1;
+                          setTentCount(newCount);
+                          setTentFeeInput(newCount * 2000);
+                        }}
+                        className="w-6 h-6 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white font-bold flex items-center justify-center text-xs"
+                      >
+                        +
+                      </button>
+                      <span className="text-slate-300 text-xs ml-0.5">個</span>
+                    </div>
+                    <span className="text-slate-400 text-[11px] font-mono ml-auto">
+                      ¥2,000 × {tentCount}個 = <strong className="text-sky-400 font-bold">¥{(tentCount * 2000).toLocaleString()}</strong>
+                    </span>
+                  </div>
+
+                  {/* クイック選択 */}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="text-[10px] text-slate-400 mr-1">クイック選択:</span>
+                    {[1, 2, 3, 4, 5].map((cnt) => (
+                      <button
+                        key={cnt}
+                        type="button"
+                        onClick={() => {
+                          setTentCount(cnt);
+                          setTentFeeInput(cnt * 2000);
+                        }}
+                        className={`px-2 py-0.5 rounded border text-[10px] font-bold ${
+                          tentCount === cnt && tentFeeInput === cnt * 2000
+                            ? 'bg-sky-500 text-slate-950 border-sky-400 font-black'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
+                        }`}
+                      >
+                        {cnt}個 (¥{(cnt * 2000).toLocaleString()})
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

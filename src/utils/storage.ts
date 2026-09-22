@@ -74,20 +74,23 @@ export function normalizeEvent(event: NightMarketEvent): NightMarketEvent {
 }
 
 export function normalizeEntries(entries: EventEntry[]): EventEntry[] {
-  return entries.map(entry => {
-    let newArea = entry.boothArea;
-    if (newArea === 'A' || newArea === 'B') {
-      newArea = 'FOOD_STALL';
-    } else if (newArea === 'C' || newArea === 'WORKSHOP') {
-      newArea = 'OUTDOOR';
-    } else if (newArea !== 'FOOD_STALL' && newArea !== 'KITCHEN_CAR' && newArea !== 'OUTDOOR') {
-      newArea = 'OUTDOOR';
-    }
-    return {
-      ...entry,
-      boothArea: newArea
-    };
-  });
+  // 夜市全体（event-all）はエントリーを持たないため、誤って保存された古いデータを自動除外
+  return entries
+    .filter(entry => entry.eventId && entry.eventId !== 'event-all')
+    .map(entry => {
+      let newArea = entry.boothArea;
+      if (newArea === 'A' || newArea === 'B') {
+        newArea = 'FOOD_STALL';
+      } else if (newArea === 'C' || newArea === 'WORKSHOP') {
+        newArea = 'OUTDOOR';
+      } else if (newArea !== 'FOOD_STALL' && newArea !== 'KITCHEN_CAR' && newArea !== 'OUTDOOR') {
+        newArea = 'OUTDOOR';
+      }
+      return {
+        ...entry,
+        boothArea: newArea
+      };
+    });
 }
 
 export function loadEvent(): NightMarketEvent {

@@ -7,7 +7,8 @@ import {
   Sparkles,
   Calendar,
   Building2,
-  Store
+  Store,
+  Database
 } from 'lucide-react';
 import { NightMarketEvent } from '../../types';
 import { exportAllDataAsJson } from '../../utils/storage';
@@ -21,6 +22,8 @@ interface HeaderProps {
   onLoadMockData?: () => void;
   onImportData: (json: string) => void;
   onOpenSpreadsheetImport: () => void;
+  onOpenSupabaseSync?: () => void;
+  isSupabaseConnected?: boolean;
   onNavigateToDashboard?: () => void;
   entryStats: {
     total: number;
@@ -41,6 +44,8 @@ export const Header: React.FC<HeaderProps> = ({
   onUpdateEvent,
   onImportData,
   onOpenSpreadsheetImport,
+  onOpenSupabaseSync,
+  isSupabaseConnected = false,
   onNavigateToDashboard,
   entryStats
 }) => {
@@ -148,6 +153,20 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* モバイル時に上段右側に並べるアクションボタン */}
             <div className="flex items-center gap-1.5 sm:hidden ml-auto">
+              {onOpenSupabaseSync && (
+                <button
+                  onClick={onOpenSupabaseSync}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-bold border transition ${
+                    isSupabaseConnected
+                      ? 'bg-emerald-950/70 border-emerald-700/80 text-emerald-300'
+                      : 'bg-slate-800 border-slate-700 text-slate-300'
+                  }`}
+                  title="Supabaseクラウド連携設定"
+                >
+                  <Database className={`w-3.5 h-3.5 ${isSupabaseConnected ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  <span>{isSupabaseConnected ? 'クラウド' : '未連携'}</span>
+                </button>
+              )}
               <button
                 onClick={onOpenSpreadsheetImport}
                 className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition"
@@ -213,6 +232,22 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* PC・タブレット用右側アクションボタン（モバイルでは上段にコンパクト配置済みのためhidden sm:flex） */}
           <div className="hidden sm:flex items-center gap-2 flex-wrap justify-end">
+            {/* Supabase クラウド連携 */}
+            {onOpenSupabaseSync && (
+              <button
+                onClick={onOpenSupabaseSync}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition shadow-sm ${
+                  isSupabaseConnected
+                    ? 'bg-emerald-950/70 hover:bg-emerald-900/80 border-emerald-600/70 text-emerald-300'
+                    : 'bg-slate-800 hover:bg-slate-750 border-slate-700 text-slate-300 hover:text-white'
+                }`}
+                title="Supabaseクラウド連携・データ同期設定"
+              >
+                <Database className={`w-3.5 h-3.5 ${isSupabaseConnected ? 'text-emerald-400' : 'text-slate-400'}`} />
+                <span>{isSupabaseConnected ? 'クラウド同期中' : 'クラウド連携'}</span>
+              </button>
+            )}
+
             {/* Googleスプレッドシート連携・自動記入 */}
             <button
               onClick={onOpenSpreadsheetImport}

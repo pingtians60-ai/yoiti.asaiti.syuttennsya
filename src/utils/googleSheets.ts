@@ -318,6 +318,11 @@ export function buildVendorsAndEntriesFromSheet(
   const updatedEntries = [...existingEntries];
   let importedCount = 0;
 
+  const isAllEvent = 
+    event.name === '夜市全体' || 
+    event.id === 'event-all' || 
+    !event.date;
+
   dataRows.forEach((row, rowIdx) => {
     const getVal = (col: number) => (col >= 0 && col < row.length ? row[col].trim() : '');
 
@@ -390,11 +395,12 @@ export function buildVendorsAndEntriesFromSheet(
     const garbageVal = getVal(mapping.garbageOptionCol).toLowerCase();
     const garbageOption = /希望|あり|有|必要|はい|yes/.test(garbageVal);
 
-    // テントレンタル判定
+    // テントレンタル判定（個数入力対応）
     const tentVal = getVal(mapping.tentOptionCol).toLowerCase();
-    const tentOption = /希望|あり|有|必要|はい|yes|1張|2張/.test(tentVal);
-    const tentCount = /2/.test(tentVal) ? 2 : (tentOption ? 1 : 0);
-    const tentFee = tentCount === 2 ? 5000 : (tentOption ? 3000 : 0);
+    const tentOption = /希望|あり|有|必要|はい|yes|張|個|\d/.test(tentVal);
+    const countMatch = tentVal.match(/(\d+)/);
+    const tentCount = countMatch ? Math.max(1, parseInt(countMatch[1], 10)) : (tentOption ? 1 : 0);
+    const tentFee = tentCount * 2000;
 
     // 出禁・要注意判定
     let status: Vendor['status'] = 'active';
@@ -407,10 +413,10 @@ export function buildVendorsAndEntriesFromSheet(
       statusReason = 'スプレッドシート記録に基づく要注意';
     }
 
-    // 料金計算
+    // 料金計算（電源はワット数に関わらず一律1,000円）
     const areaDef = event.areas.find(a => a.code === boothArea);
     const baseFee = areaDef?.defaultBaseFee || (boothArea === 'KITCHEN_CAR' ? 12000 : boothArea === 'FOOD_STALL' ? 8000 : 5000);
-    const powerFee = powerOption ? 1500 : 0;
+    const powerFee = powerOption ? 1000 : 0;
     const garbageFee = garbageOption ? 500 : 0;
     const totalAmount = baseFee + powerFee + tentFee + garbageFee;
 
@@ -449,8 +455,10 @@ export function buildVendorsAndEntriesFromSheet(
       updatedVendors.push(vendorObj);
     }
 
-    // 既存エントリーとの突合
-    const matchedEntryIndex = updatedEntries.findIndex(e => e.vendorId === vendorId && e.eventId === event.id);
+    // 「夜市全体」選択時は特定イベントのエントリーは生成せず、出店者名簿マスターのみ更新
+    if (!isAllEvent) {
+      // 既存エントリーとの突合
+      const matchedEntryIndex = updatedEntries.findIndex(e => e.vendorId === vendorId && e.eventId === event.id);
 
     // ブース番号の自動採番（未登録の場合）
     const existingAreaCount = updatedEntries.filter(e => e.boothArea === boothArea).length;
@@ -507,21 +515,25 @@ export function buildVendorsAndEntriesFromSheet(
       notes: notes ? `Googleフォーム回答より自動記入: ${notes}` : 'Googleフォーム回答より自動記入'
     };
 
-    if (matchedEntryIndex >= 0) {
-      updatedEntries[matchedEntryIndex] = entryObj;
-    } else {
-      updatedEntries.push(entryObj);
+      if (matchedEntryIndex >= 0) {
+        updatedEntries[matchedEntryIndex] = entryObj;
+      } else {
+        updatedEntries.push(entryObj);
+      }
     }
 
     importedCount++;
   });
 
   // 出店者・エントリーの被り（重複）を自動検知して片方を自動削除
-  const deduped = deduplicateVendorsAndEntries(updatedVendors, updatedEntries);
+  const deduped = deduplicateVendorsAndEntries(
+    updatedVendors,
+    isAllEvent ? existingEntries : updatedEntries
+  );
 
   return {
     vendors: deduped.vendors,
-    entries: deduped.entries,
+    entries: isAllEvent ? existingEntries : deduped.entries,
     importedCount,
     removedDuplicatesCount: deduped.removedVendorCount
   };

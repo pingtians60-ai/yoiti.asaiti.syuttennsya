@@ -41,6 +41,8 @@ export const SpreadsheetImportModal: React.FC<SpreadsheetImportModalProps> = ({
   onClose,
   onImport
 }) => {
+  const isAllEvent = event.name === '夜市全体' || event.id === 'event-all' || !event.date;
+
   const [sheetUrl, setSheetUrl] = useState('');
   const [activeInputMode, setActiveInputMode] = useState<'url' | 'paste'>('url');
   const [rawText, setRawText] = useState('');
@@ -195,7 +197,9 @@ export const SpreadsheetImportModal: React.FC<SpreadsheetImportModalProps> = ({
                 </span>
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Googleフォームの回答スプレッドシートのURLを貼り付けるだけで、出店者・エントリー情報を一括自動記入します。
+                {isAllEvent 
+                  ? 'Googleフォームの回答スプレッドシートのURLから、出店者マスター名簿（過去の出店者一覧）に一括登録・更新します。' 
+                  : 'Googleフォームの回答スプレッドシートのURLを貼り付けるだけで、出店者・エントリー情報を一括自動記入します。'}
               </p>
             </div>
           </div>
@@ -502,10 +506,16 @@ export const SpreadsheetImportModal: React.FC<SpreadsheetImportModalProps> = ({
           {/* 解析プレビュー */}
           {parsedRows.length > 1 && (
             <div className="space-y-3">
+              {isAllEvent && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs leading-relaxed">
+                  💡 現在「夜市全体（出店者マスター名簿）」が選択されているため、<strong>出店者マスター名簿への登録・更新</strong>のみ行われます（ブース番号・料金・許可証などの特定イベント用エントリーは作成されません）。特定イベントへの出店ブースとして取り込む場合は、上部のイベント選択から開催日を選択してください。
+                </div>
+              )}
+
               <div className="flex justify-between items-center text-slate-300 font-bold">
                 <span className="flex items-center gap-2">
                   <Store className="w-4 h-4 text-emerald-400" />
-                  自動記入プレビュー ({newImportCount}件の回答を検出)
+                  {isAllEvent ? '出店者名簿プレビュー' : '自動記入プレビュー'} ({newImportCount}件の回答を検出)
                 </span>
                 <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
                   <Check className="w-3.5 h-3.5" /> 正常に構造化されました
@@ -513,42 +523,75 @@ export const SpreadsheetImportModal: React.FC<SpreadsheetImportModalProps> = ({
               </div>
 
               <div className="max-h-52 overflow-y-auto border border-slate-800 rounded-2xl divide-y divide-slate-800 bg-slate-850">
-                {previewEntries.slice(-newImportCount).map((entry, idx) => (
-                  <div key={idx} className="p-3 flex items-center justify-between hover:bg-slate-800/60 transition">
-                    <div className="space-y-0.5">
-                      <div className="font-bold text-white flex items-center gap-2">
-                        <span>{entry.vendorSnapshot.name}</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                          {entry.boothNumber}
-                        </span>
-                        {entry.fireSafety.hasFireAppliance && entry.fireSafety.appliances.map((app, aIdx) => (
-                          <span key={aIdx} className="text-[10px] px-2 py-0.5 rounded bg-orange-950 border border-orange-800 text-orange-300 font-bold flex items-center gap-1 whitespace-nowrap shadow-sm">
-                            <Flame className="w-3 h-3 text-red-400 shrink-0" />
-                            {app.fuel} × {app.count}台
+                {isAllEvent ? (
+                  previewVendors.slice(-newImportCount).map((v, idx) => (
+                    <div key={idx} className="p-3 flex items-center justify-between hover:bg-slate-800/60 transition">
+                      <div className="space-y-0.5">
+                        <div className="font-bold text-white flex items-center gap-2">
+                          <span>{v.name}</span>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                            名簿登録
                           </span>
-                        ))}
-                        {entry.vendorSnapshot.status === 'banned' && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-red-600 text-white font-bold">出禁</span>
-                        )}
-                        {entry.vendorSnapshot.status === 'warning' && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500 text-black font-bold">要注意</span>
-                        )}
+                          {v.status === 'banned' && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-red-600 text-white font-bold">出禁</span>
+                          )}
+                          {v.status === 'warning' && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500 text-black font-bold">要注意</span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          代表: {v.ownerName} | TEL: {v.phone || '未記入'} | 品目: {v.menuItems}
+                        </div>
                       </div>
-                      <div className="text-[11px] text-slate-400">
-                        代表: {entry.vendorSnapshot.ownerName} | TEL: {entry.vendorSnapshot.phone || '未記入'} | 品目: {entry.vendorSnapshot.menuItems}
-                      </div>
-                    </div>
 
-                    <div className="text-right">
-                      <span className="text-xs font-mono font-bold text-emerald-400 block">
-                        ¥{entry.fee.totalAmount.toLocaleString()}
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        {event.areas.find(a => a.code === entry.boothArea)?.name || entry.boothArea}
-                      </span>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-bold text-amber-400 block">
+                          出店者マスター
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {v.category === 'kitchen_car' ? 'キッチンカー' : v.category === 'food' ? '飲食露店' : '屋外物販'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  previewEntries.slice(-newImportCount).map((entry, idx) => (
+                    <div key={idx} className="p-3 flex items-center justify-between hover:bg-slate-800/60 transition">
+                      <div className="space-y-0.5">
+                        <div className="font-bold text-white flex items-center gap-2">
+                          <span>{entry.vendorSnapshot.name}</span>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                            {entry.boothNumber}
+                          </span>
+                          {entry.fireSafety.hasFireAppliance && entry.fireSafety.appliances.map((app, aIdx) => (
+                            <span key={aIdx} className="text-[10px] px-2 py-0.5 rounded bg-orange-950 border border-orange-800 text-orange-300 font-bold flex items-center gap-1 whitespace-nowrap shadow-sm">
+                              <Flame className="w-3 h-3 text-red-400 shrink-0" />
+                              {app.fuel} × {app.count}台
+                            </span>
+                          ))}
+                          {entry.vendorSnapshot.status === 'banned' && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-red-600 text-white font-bold">出禁</span>
+                          )}
+                          {entry.vendorSnapshot.status === 'warning' && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500 text-black font-bold">要注意</span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          代表: {entry.vendorSnapshot.ownerName} | TEL: {entry.vendorSnapshot.phone || '未記入'} | 品目: {entry.vendorSnapshot.menuItems}
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-bold text-emerald-400 block">
+                          ¥{entry.fee.totalAmount.toLocaleString()}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {event.areas.find(a => a.code === entry.boothArea)?.name || entry.boothArea}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -586,7 +629,7 @@ export const SpreadsheetImportModal: React.FC<SpreadsheetImportModalProps> = ({
               className="px-6 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-slate-950 font-black text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-500/20"
             >
               <Check className="w-4 h-4" />
-              システムに自動記入して反映
+              {isAllEvent ? '出店者名簿マスターに登録・更新' : 'システムに自動記入して反映'}
             </button>
           </div>
         </div>

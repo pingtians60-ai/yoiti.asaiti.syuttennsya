@@ -44,11 +44,11 @@ export interface FireSafetyInfo {
 export interface VendorFee {
   baseFee: number;                       // 基本出店料金
   powerOption: boolean;                  // 電源利用
-  powerFee: number;                      // 電源利用料（例: 1,500円）
+  powerFee: number;                      // 電源利用料（ワット数に関わらず一律 1,000円）
   powerWatts?: number;                   // 使用W数（例: 1500W）
-  tentOption?: boolean;                  // テントレンタル利用有無
-  tentCount?: number;                    // テント張り数（例: 1張, 2張）
-  tentFee?: number;                      // テントレンタル料金（例: 3,000円）
+  tentOption?: boolean;                  // テントレンタル（重り付き）利用有無
+  tentCount?: number;                    // テントレンタル個数（例: 1個, 2個）
+  tentFee?: number;                      // テントレンタル料金（個数 × 2,000円）
   garbageOption: boolean;                // ゴミ回収オプション
   garbageFee: number;                    // ゴミ回収費（例: 500円）
   equipmentRentalFee: number;            // テーブル・椅子など貸出料

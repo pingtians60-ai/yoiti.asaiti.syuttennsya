@@ -6,6 +6,7 @@ import { CalendarView } from './components/calendar/CalendarView';
 import { BoothManagementView } from './components/management/BoothManagementView';
 import { VendorListView } from './components/vendor-list/VendorListView';
 import { SpreadsheetImportModal } from './components/common/SpreadsheetImportModal';
+import { SupabaseSyncModal } from './components/common/SupabaseSyncModal';
 
 import { NightMarketEvent, Vendor, EventEntry, isVendorOrganization } from './types';
 import { 
@@ -25,6 +26,20 @@ import {
   defaultBlankEvent
 } from './utils/storage';
 import { deduplicateVendorsAndEntries } from './utils/googleSheets';
+import { 
+  testSupabaseConnection 
+} from './services/supabaseClient';
+import { 
+  fetchSupabaseData, 
+  syncEventToSupabase, 
+  deleteEventFromSupabase, 
+  syncVendorToSupabase, 
+  deleteVendorFromSupabase,
+  syncEntryToSupabase,
+  deleteEntryFromSupabase,
+  subscribeToSupabaseChanges,
+  pushAllLocalDataToSupabase
+} from './services/supabaseService';
 import { Sparkles, FileSpreadsheet } from 'lucide-react';
 
 export function App() {
@@ -52,6 +67,10 @@ export function App() {
 
   const [vendors, setVendors] = useState<Vendor[]>(loadVendors);
   const [entries, setEntries] = useState<EventEntry[]>(loadEntries);
+
+  // Supabaseクラウド連携ステート
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
 
   console.log('[DEBUG-STATE] allEvents count:', allEvents.length, allEvents.map(e => ({ id: e.id, name: e.name, date: e.date })));
   console.log('[DEBUG-STATE] vendors count:', vendors.length, vendors.map(v => ({ id: v.id, name: v.name })));
@@ -84,10 +103,104 @@ export function App() {
     }
   }, []);
 
+  // Supabaseクラウド接続テスト & クラウドデータの自動取得
+  useEffect(() => {
+    let isMounted = true;
+    testSupabaseConnection().then((res) => {
+      if (!isMounted) return;
+      setIsSupabaseConnected(res.success);
+      if (res.success) {
+        fetchSupabaseData().then((cloudData) => {
+          if (!isMounted || !cloudData) return;
+          if (cloudData.events.length > 0 || cloudData.vendors.length > 0 || cloudData.entries.length > 0) {
+            if (cloudData.events.length > 0) {
+              setAllEvents(cloudData.events);
+              saveAllEvents(cloudData.events);
+              setSelectedEventId((prev) => {
+                if (cloudData.events.some((e) => e.id === prev)) return prev;
+                return cloudData.events[0]?.id || prev;
+              });
+            }
+            if (cloudData.vendors.length > 0) {
+              setVendors(cloudData.vendors);
+              saveVendors(cloudData.vendors);
+            }
+            if (cloudData.entries.length > 0) {
+              setEntries(cloudData.entries);
+              saveEntries(cloudData.entries);
+            }
+          }
+        });
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // クラウドからの最新データ手動再読み込み
+  const handleRefreshDataFromCloud = async () => {
+    const res = await testSupabaseConnection();
+    setIsSupabaseConnected(res.success);
+    if (!res.success) return;
+
+    const cloudData = await fetchSupabaseData();
+    if (!cloudData) return;
+
+    if (cloudData.events.length > 0) {
+      setAllEvents(cloudData.events);
+      saveAllEvents(cloudData.events);
+      if (!cloudData.events.some((e) => e.id === selectedEventId)) {
+        setSelectedEventId(cloudData.events[0].id);
+        saveSelectedEventId(cloudData.events[0].id);
+      }
+    }
+    if (cloudData.vendors.length > 0) {
+      setVendors(cloudData.vendors);
+      saveVendors(cloudData.vendors);
+    }
+    if (cloudData.entries.length > 0) {
+      setEntries(cloudData.entries);
+      saveEntries(cloudData.entries);
+    }
+  };
+
+  const handleConnectionStatusChange = async () => {
+    const res = await testSupabaseConnection();
+    setIsSupabaseConnected(res.success);
+  };
+
+  // Supabase Realtimeによるリアルタイム自動同期（他端末・他タブでの更新を即時反映）
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    if (isSupabaseConnected) {
+      unsubscribe = subscribeToSupabaseChanges(() => {
+        handleRefreshDataFromCloud();
+      });
+    }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [isSupabaseConnected]);
+
+  // ブラウザタブ復帰時（focus）に最新クラウドデータを自動チェック
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isSupabaseConnected) {
+        handleRefreshDataFromCloud();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [isSupabaseConnected]);
+
   // 現在選択中イベントのエントリー（出店ブース）
   // 出店・ブース管理はカレンダーの個別予定イベントで利用
+  // 「夜市全体」は過去の出店者マスター名簿であり、特定イベントのエントリー（ブース）は存在しない
   const currentEventEntries = isAllEvent
-    ? entries
+    ? []
     : entries.filter(
         (e) => e.eventId === event.id || (!e.eventId && allEvents[0]?.id === event.id)
       );
@@ -113,6 +226,7 @@ export function App() {
     setSelectedEventId(newEvent.id);
     saveSelectedEventId(newEvent.id);
     saveEvent(newEvent);
+    syncEventToSupabase(newEvent).catch(console.error);
   };
 
   // イベント情報更新
@@ -121,10 +235,12 @@ export function App() {
     setAllEvents(updatedList);
     saveAllEvents(updatedList);
     saveEvent(updated);
+    syncEventToSupabase(updated).catch(console.error);
   };
 
   // イベント削除
   const handleDeleteEvent = (eventId: string) => {
+    deleteEventFromSupabase(eventId).catch(console.error);
     if (allEvents.length <= 1) {
       // 最後の1件を削除した場合は、初期状態の空イベントにリセット
       const resetEvent: NightMarketEvent = {
@@ -139,6 +255,7 @@ export function App() {
       setSelectedEventId(resetEvent.id);
       saveSelectedEventId(resetEvent.id);
       saveEvent(resetEvent);
+      syncEventToSupabase(resetEvent).catch(console.error);
 
       // このイベントのエントリーも削除
       const updatedEntries = entries.filter((e) => e.eventId !== eventId);
@@ -163,8 +280,13 @@ export function App() {
   };
 
   const handleUpdateVendors = (updatedVendors: Vendor[]) => {
+    // 削除された出店者をSupabaseからも削除
+    const deletedVendors = vendors.filter((prev) => !updatedVendors.some((curr) => curr.id === prev.id));
+    deletedVendors.forEach((v) => deleteVendorFromSupabase(v.id).catch(console.error));
+
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
+    updatedVendors.forEach((v) => syncVendorToSupabase(v).catch(console.error));
 
     // entries側のvendorSnapshotも自動同期
     setEntries((prevEntries) => {
@@ -186,22 +308,27 @@ export function App() {
 
   // 現在選択中イベントのエントリー更新
   const handleUpdateCurrentEventEntries = (updatedForCurrentEvent: EventEntry[]) => {
+    // 夜市全体（isAllEvent）はエントリーを持たないため、エントリー更新は行わない
+    if (isAllEvent) return;
+
+    // 削除されたエントリーをSupabaseからも削除
+    const deletedEntries = currentEventEntries.filter(
+      (prev) => !updatedForCurrentEvent.some((curr) => curr.id === prev.id)
+    );
+    deletedEntries.forEach((e) => deleteEntryFromSupabase(e.id).catch(console.error));
+
     setEntries((prevEntries) => {
-      let newAllEntries: EventEntry[];
-      if (isAllEvent) {
-        newAllEntries = updatedForCurrentEvent;
-      } else {
-        const otherEntries = prevEntries.filter(
-          (e) => e.eventId !== event.id && (e.eventId || allEvents[0]?.id !== event.id)
-        );
-        const standardized = updatedForCurrentEvent.map((e) => ({
-          ...e,
-          eventId: event.id
-        }));
-        newAllEntries = [...otherEntries, ...standardized];
-      }
+      const otherEntries = prevEntries.filter(
+        (e) => e.eventId !== event.id && (e.eventId || allEvents[0]?.id !== event.id)
+      );
+      const standardized = updatedForCurrentEvent.map((e) => ({
+        ...e,
+        eventId: event.id
+      }));
+      const newAllEntries = [...otherEntries, ...standardized];
 
       saveEntries(newAllEntries);
+      standardized.forEach((e) => syncEntryToSupabase(e).catch(console.error));
 
       // entries側で出店者情報（屋号、代表者、電話等）が編集・変更された場合、vendors名簿マスター側も自動同期
       setVendors((prevVendors) => {
@@ -228,8 +355,15 @@ export function App() {
 
   // 全エントリーの直接更新（カレンダー等からの更新用）
   const handleUpdateAllEntries = (newAllEntries: EventEntry[]) => {
+    // 削除されたエントリーをSupabaseからも削除
+    const deletedEntries = entries.filter(
+      (prev) => !newAllEntries.some((curr) => curr.id === prev.id)
+    );
+    deletedEntries.forEach((e) => deleteEntryFromSupabase(e.id).catch(console.error));
+
     setEntries(newAllEntries);
     saveEntries(newAllEntries);
+    newAllEntries.forEach((e) => syncEntryToSupabase(e).catch(console.error));
   };
 
   // 全消去（空にして新規スタート）
@@ -255,11 +389,14 @@ export function App() {
     const success = importAllDataFromJson(jsonStr);
     if (success) {
       const loadedEvents = loadAllEvents();
+      const loadedVendors = loadVendors();
+      const loadedEntries = loadEntries();
       setAllEvents(loadedEvents);
       setSelectedEventId(loadSelectedEventId() || loadedEvents[0]?.id || '');
-      setVendors(loadVendors());
-      setEntries(loadEntries());
-      alert('バックアップデータを正常に読み込みました。');
+      setVendors(loadedVendors);
+      setEntries(loadedEntries);
+      pushAllLocalDataToSupabase(loadedEvents, loadedVendors, loadedEntries).catch(console.error);
+      alert('バックアップデータを正常に読み込み、クラウドにも同期しました。');
     } else {
       alert('JSONデータの読み込みに失敗しました。ファイル形式をご確認ください。');
     }
@@ -273,6 +410,10 @@ export function App() {
     // 現在選択中のイベントIDを付与して反映
     const entriesWithEventId = deduped.entries.map((e) => ({ ...e, eventId: event.id }));
     handleUpdateCurrentEventEntries(entriesWithEventId);
+
+    // Supabaseにも反映
+    deduped.vendors.forEach((v) => syncVendorToSupabase(v).catch(console.error));
+    entriesWithEventId.forEach((e) => syncEntryToSupabase(e).catch(console.error));
 
     let msg = `Googleスプレッドシートから「${event.name}」へ ${count}件の出店・エントリー情報を自動記入しました！`;
     if (deduped.removedVendorCount > 0) {
@@ -310,6 +451,8 @@ export function App() {
         onUpdateEvent={handleUpdateEvent}
         onImportData={handleImportData}
         onOpenSpreadsheetImport={() => setIsSpreadsheetModalOpen(true)}
+        onOpenSupabaseSync={() => setIsSupabaseModalOpen(true)}
+        isSupabaseConnected={isSupabaseConnected}
         onNavigateToDashboard={() => {
           const allEvent = allEvents.find((e) => e.id === 'event-all' || e.name === '夜市全体') || allEvents[0];
           if (allEvent) {
@@ -319,10 +462,8 @@ export function App() {
         }}
         entryStats={{
           total: isAllEvent ? vendors.length : currentEventEntries.length,
-          confirmed: isAllEvent ? vendors.length : currentEventEntries.filter((e) => e.entryStatus === 'confirmed').length,
-          fireCount: isAllEvent
-            ? vendors.filter((v) => v.category === 'food' || v.category === 'kitchen_car' || v.tags.some((t) => t.includes('火気'))).length
-            : fireCount,
+          confirmed: isAllEvent ? 0 : currentEventEntries.filter((e) => e.entryStatus === 'confirmed').length,
+          fireCount: isAllEvent ? 0 : fireCount,
           unpaidCount: isAllEvent ? 0 : unpaidCount,
           warningCount: bannedWarningCount,
           isAllEvent,
@@ -428,6 +569,18 @@ export function App() {
           onImport={handleSpreadsheetImport}
         />
       )}
+
+      {/* Supabase クラウド連携モーダル */}
+      <SupabaseSyncModal
+        isOpen={isSupabaseModalOpen}
+        onClose={() => setIsSupabaseModalOpen(false)}
+        events={allEvents}
+        vendors={vendors}
+        entries={entries}
+        isConnected={isSupabaseConnected}
+        onRefreshDataFromCloud={handleRefreshDataFromCloud}
+        onConnectionStatusChange={handleConnectionStatusChange}
+      />
 
       {/* 管理者フッター */}
       <footer className="no-print border-t border-slate-800/80 bg-slate-900/40 py-6 text-center text-xs text-slate-400">

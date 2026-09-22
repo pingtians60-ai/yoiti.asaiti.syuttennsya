@@ -135,7 +135,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             className="bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 p-4 rounded-2xl cursor-pointer transition shadow-lg group relative overflow-hidden"
           >
             <div className="flex justify-between items-start">
-              <span className="text-xs font-semibold text-slate-400">登録店舗マスター</span>
+              <span className="text-xs font-semibold text-slate-400">過去出店店舗</span>
               <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-slate-950 transition">
                 <Store className="w-4 h-4" />
               </div>
