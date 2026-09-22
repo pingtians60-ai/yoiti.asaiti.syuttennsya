@@ -320,7 +320,7 @@ export function parseSpreadsheetCsv(csvText: string): Vendor[] {
     if (cols.length === 0 || !cols[0]) continue;
 
     const name = cols[0] || `出店者_${i + 1}`;
-    const ownerName = cols[1] || '代表者未定';
+    const ownerName = cols[1] || '';
     const phone = cols[2] || '';
     const email = cols[3] || '';
     const categoryRaw = cols[4] || '';

@@ -558,10 +558,14 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
               </h2>
 
               <div className="text-xs text-slate-300 flex items-center gap-2 pt-0.5 flex-wrap">
-                <span className="text-slate-400">代表者:</span>
-                <strong className="text-white font-bold">{vendor.ownerName}</strong>
-                <span className="text-slate-400">様</span>
-                <span className="text-slate-500">|</span>
+                {vendor.ownerName && vendor.ownerName.trim() && (
+                  <>
+                    <span className="text-slate-400">代表者:</span>
+                    <strong className="text-white font-bold">{vendor.ownerName}</strong>
+                    <span className="text-slate-400">様</span>
+                    <span className="text-slate-500">|</span>
+                  </>
+                )}
                 <span className="text-slate-400">連絡先:</span>
                 <span className="text-slate-200 font-mono">{vendor.phone}</span>
                 {vendor.instagram && (

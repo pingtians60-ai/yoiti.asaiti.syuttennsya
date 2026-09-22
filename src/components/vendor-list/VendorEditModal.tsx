@@ -220,14 +220,13 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">代表者氏名 <span className="text-rose-400">*</span></label>
+                  <label className="block text-slate-400 mb-1 font-semibold">代表者氏名</label>
                   <input
                     type="text"
                     value={formData.ownerName}
                     onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                    placeholder="例: 田中 太郎"
-                    required
+                    placeholder="例: 田中 太郎 (任意)"
                   />
                 </div>
               </div>

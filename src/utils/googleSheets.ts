@@ -329,7 +329,7 @@ export function buildVendorsAndEntriesFromSheet(
     const name = getVal(mapping.nameCol) || `出店者_${rowIdx + 1}`;
     if (!name || name === '屋号' || name === '店舗名') return;
 
-    const ownerName = getVal(mapping.ownerNameCol) || '代表者未定';
+    const ownerName = getVal(mapping.ownerNameCol) || '';
     const phone = getVal(mapping.phoneCol);
     const email = getVal(mapping.emailCol);
     const lineId = getVal(mapping.lineIdCol);

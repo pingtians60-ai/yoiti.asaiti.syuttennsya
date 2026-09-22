@@ -624,9 +624,11 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                       </h3>
 
                       <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                        <span>
-                          代表: <strong className="text-slate-300 font-medium">{vendor.ownerName}</strong>
-                        </span>
+                        {vendor.ownerName && vendor.ownerName.trim() ? (
+                          <span>
+                            代表: <strong className="text-slate-300 font-medium">{vendor.ownerName}</strong>
+                          </span>
+                        ) : null}
                         {vendor.pastParticipationCount > 0 && (
                           <span className="text-slate-500 text-[11px]">
                             (出店{vendor.pastParticipationCount}回)
