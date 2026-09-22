@@ -138,8 +138,8 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
             <div className="p-4 rounded-xl border bg-slate-800/60 border-slate-700 space-y-3">
               <div className="font-bold text-slate-200 text-sm flex items-center justify-between">
                 <span>出禁・要注意フラグ設定</span>
-                <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                  isBanned ? 'bg-red-600 text-white' : isWarning ? 'bg-amber-500 text-black' : 'bg-emerald-500/20 text-emerald-400'
+                <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${
+                  isBanned ? 'bg-red-950/70 text-red-300 border-red-800/60' : isWarning ? 'bg-amber-950/70 text-amber-300 border-amber-800/60' : 'bg-slate-800 text-slate-300 border-slate-700'
                 }`}>
                   {isBanned ? '出禁' : isWarning ? '要注意' : '通常'}
                 </span>

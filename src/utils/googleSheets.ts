@@ -405,12 +405,16 @@ export function buildVendorsAndEntriesFromSheet(
     // 出禁・要注意判定
     let status: Vendor['status'] = 'active';
     let statusReason = '';
-    if (/出禁|ブラック|トラブル/.test(fullRowText)) {
+    // 「注意事項」「注意点」「ご注意」等の説明文・規約同意文による誤検知を防止
+    const cleanRowText = fullRowText
+      .replace(/注意事項|注意点|ご注意|留意事項|留意点|特記事項|規約/g, '')
+      .trim();
+    if (/出禁|ブラック/.test(cleanRowText)) {
       status = 'banned';
       statusReason = 'スプレッドシート記録に基づく出禁';
-    } else if (/注意|要注意|要確認/.test(fullRowText)) {
+    } else if (/トラブル|要注意|警告|クレーム|警察|消防指導|違反/.test(cleanRowText)) {
       status = 'warning';
-      statusReason = 'スプレッドシート記録に基づく要注意';
+      statusReason = '過去のトラブル・警告記録あり';
     }
 
     // 料金計算（電源はワット数に関わらず一律1,000円）

@@ -18,6 +18,7 @@ import {
   saveSelectedEventId,
   loadVendors, 
   saveVendors, 
+  normalizeVendors,
   loadEntries, 
   saveEntries, 
   clearAllData,
@@ -122,8 +123,18 @@ export function App() {
               });
             }
             if (cloudData.vendors.length > 0) {
-              setVendors(cloudData.vendors);
-              saveVendors(cloudData.vendors);
+              const normalized = normalizeVendors(cloudData.vendors);
+              setVendors(normalized);
+              saveVendors(normalized);
+              // スプレッドシート由来の誤った要注意フラグが解除された場合はSupabaseクラウド側も自動更新
+              normalized.forEach((v) => {
+                const raw = cloudData.vendors.find((cv) => cv.id === v.id);
+                if (raw && raw.status === 'warning' && v.status === 'active') {
+                  syncVendorToSupabase(v).catch((err) =>
+                    console.error('Failed to sync normalized vendor to Supabase:', err)
+                  );
+                }
+              });
             }
             if (cloudData.entries.length > 0) {
               setEntries(cloudData.entries);
@@ -156,8 +167,17 @@ export function App() {
       }
     }
     if (cloudData.vendors.length > 0) {
-      setVendors(cloudData.vendors);
-      saveVendors(cloudData.vendors);
+      const normalized = normalizeVendors(cloudData.vendors);
+      setVendors(normalized);
+      saveVendors(normalized);
+      normalized.forEach((v) => {
+        const raw = cloudData.vendors.find((cv) => cv.id === v.id);
+        if (raw && raw.status === 'warning' && v.status === 'active') {
+          syncVendorToSupabase(v).catch((err) =>
+            console.error('Failed to sync normalized vendor to Supabase:', err)
+          );
+        }
+      });
     }
     if (cloudData.entries.length > 0) {
       setEntries(cloudData.entries);

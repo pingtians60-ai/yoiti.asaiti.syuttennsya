@@ -180,10 +180,28 @@ export function normalizeVendorCategory(cat?: string): VendorCategory {
 }
 
 export function normalizeVendors(vendors: Vendor[]): Vendor[] {
-  return vendors.map(v => ({
-    ...v,
-    category: normalizeVendorCategory(v.category)
-  }));
+  return vendors.map(v => {
+    let status = v.status;
+    let statusReason = v.statusReason;
+
+    // スプレッドシートの「注意事項」等の質問列によって誤って要注意判定された出店者を自動復旧
+    if (status === 'warning' && (statusReason === 'スプレッドシート記録に基づく要注意' || statusReason?.includes('スプレッドシート'))) {
+      const combinedNotes = `${v.internalNotes || ''} ${v.tags?.join(' ') || ''}`
+        .replace(/注意事項|注意点|ご注意|留意事項|留意点|特記事項|規約/g, '')
+        .trim();
+      if (!/トラブル|要注意|警告|クレーム|警察|消防指導|違反|出禁|ブラック/.test(combinedNotes)) {
+        status = 'active';
+        statusReason = undefined;
+      }
+    }
+
+    return {
+      ...v,
+      status,
+      statusReason,
+      category: normalizeVendorCategory(v.category)
+    };
+  });
 }
 
 export function loadVendors(): Vendor[] {
@@ -321,12 +339,15 @@ export function parseSpreadsheetCsv(csvText: string): Vendor[] {
     // 出禁・要注意判定
     let status: Vendor['status'] = 'active';
     let statusReason = '';
-    if (line.includes('出禁') || note.includes('出禁')) {
+    const cleanImportText = `${line} ${note}`
+      .replace(/注意事項|注意点|ご注意|留意事項|留意点|特記事項|規約/g, '')
+      .trim();
+    if (/出禁|ブラック/.test(cleanImportText)) {
       status = 'banned';
       statusReason = 'スプレッドシート記録に基づく出禁';
-    } else if (line.includes('注意') || note.includes('注意')) {
+    } else if (/トラブル|要注意|警告|クレーム|警察|消防指導|違反/.test(cleanImportText)) {
       status = 'warning';
-      statusReason = 'スプレッドシート記録に基づく要注意';
+      statusReason = '過去のトラブル・警告記録あり';
     }
 
     results.push({

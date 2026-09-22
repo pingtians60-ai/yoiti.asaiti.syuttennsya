@@ -502,21 +502,21 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
         {/* モーダル上部ヘッダー */}
         <div className={`p-4 sm:p-5 border-b relative ${
           isBanned 
-            ? 'bg-gradient-to-r from-red-950/90 via-slate-900 to-slate-900 border-red-800/80' 
+            ? 'bg-gradient-to-r from-red-950/60 via-slate-900 to-slate-900 border-red-900/60' 
             : isWarning 
-            ? 'bg-gradient-to-r from-amber-950/90 via-slate-900 to-slate-900 border-amber-800/80' 
+            ? 'bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-900 border-amber-900/60' 
             : 'bg-gradient-to-r from-slate-850 via-slate-900 to-slate-900 border-slate-800'
         }`}>
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1 flex-1 pr-6">
               {/* ステータス ＆ カテゴリバッジ */}
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm ${
+                <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm ${
                   isBanned
-                    ? 'bg-red-600 text-white animate-pulse'
+                    ? 'bg-red-950/80 text-red-300 border border-red-800/70'
                     : isWarning
-                    ? 'bg-amber-500 text-slate-950 font-bold'
-                    : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold'
+                    ? 'bg-amber-950/80 text-amber-300 border border-amber-800/70'
+                    : 'bg-emerald-950/50 text-emerald-300 border border-emerald-800/50'
                 }`}>
                   {isBanned && <ShieldAlert className="w-3.5 h-3.5" />}
                   {isWarning && <AlertTriangle className="w-3.5 h-3.5" />}
@@ -529,14 +529,14 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
                 </span>
 
                 {isVendorOrganization(vendor) && (
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/20 flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5 text-slate-950" />
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 font-semibold flex items-center gap-1">
+                    <Building2 className="w-3.5 h-3.5 text-emerald-400" />
                     登録団体
                   </span>
                 )}
 
                 {entry?.boothNumber && (
-                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black">
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-800 text-sky-300 border border-sky-800/50 font-semibold">
                     ブース: {entry.boothNumber}
                   </span>
                 )}

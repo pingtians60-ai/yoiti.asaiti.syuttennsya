@@ -63,7 +63,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<'ALL' | VendorStatus>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'store' | 'organization'>('ALL');
-  const [sortBy, setSortBy] = useState<'kana' | 'original' | 'count'>('kana'); // デフォルトで五十音順（AI自動判定）
+  const [sortBy, setSortBy] = useState<'kana' | 'count'>('kana'); // デフォルトで五十音順（AI自動判定）
   const [kanaRow, setKanaRow] = useState<string>('ALL');
   const [selectedVendorForDetail, setSelectedVendorForDetail] = useState<Vendor | null>(null);
   const [detailInitialTab, setDetailInitialTab] = useState<'info' | 'fire' | 'permit'>('info');
@@ -324,8 +324,8 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
               onClick={() => setStatusFilter(statusFilter === 'banned' ? 'ALL' : 'banned')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
                 statusFilter === 'banned'
-                  ? 'bg-red-600 text-white border-red-500'
-                  : 'bg-red-950/40 text-red-300 border-red-800 hover:bg-red-900/50'
+                  ? 'bg-red-900/60 text-red-200 border-red-700 shadow-sm'
+                  : 'bg-red-950/40 text-red-300 border-red-800/70 hover:bg-red-900/50'
               }`}
             >
               出禁: {bannedCount}件
@@ -334,8 +334,8 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
               onClick={() => setStatusFilter(statusFilter === 'warning' ? 'ALL' : 'warning')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
                 statusFilter === 'warning'
-                  ? 'bg-amber-500 text-black border-amber-400'
-                  : 'bg-amber-950/40 text-amber-300 border-amber-800 hover:bg-amber-900/50'
+                  ? 'bg-amber-900/60 text-amber-200 border-amber-700 shadow-sm'
+                  : 'bg-amber-950/40 text-amber-300 border-amber-800/70 hover:bg-amber-900/50'
               }`}
             >
               要注意: {warningCount}件
@@ -464,7 +464,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
             onClick={() => setSortBy('kana')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
               sortBy === 'kana'
-                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
                 : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300 border-slate-700'
             }`}
           >
@@ -475,22 +475,11 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
             onClick={() => setSortBy('count')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
               sortBy === 'count'
-                ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-md shadow-amber-500/20'
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold shadow-sm'
                 : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300 border-slate-700'
             }`}
           >
             <span>出店回数順</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setSortBy('original')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
-              sortBy === 'original'
-                ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-md shadow-amber-500/20'
-                : 'bg-slate-800/80 hover:bg-slate-750 text-slate-300 border-slate-700'
-            }`}
-          >
-            <span>登録順</span>
           </button>
         </div>
 
@@ -541,62 +530,54 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                   }}
                   className={`cursor-pointer rounded-2xl p-4 sm:p-5 border transition-all duration-200 flex flex-col justify-between shadow-sm relative overflow-hidden group/card hover:shadow-lg hover:-translate-y-0.5 ${
                     isBanned
-                      ? 'bg-red-950/20 border-red-800/50 shadow-red-950/20 hover:border-red-600'
+                      ? 'bg-slate-900 border-red-900/40 shadow-red-950/10 hover:border-red-750'
                       : isWarning
-                      ? 'bg-amber-950/20 border-amber-800/40 shadow-amber-950/20 hover:border-amber-600'
+                      ? 'bg-slate-900 border-amber-900/40 shadow-amber-950/10 hover:border-amber-750'
                       : isRegistered
                       ? 'bg-slate-900 border-slate-800 hover:border-slate-700 hover:bg-slate-850/80'
                       : isOrg
-                      ? 'bg-slate-900 border-slate-800 hover:border-emerald-800/50 hover:bg-slate-850/80'
-                      : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-850'
+                      ? 'bg-slate-900 border-slate-800 hover:border-slate-700 hover:bg-slate-850/80'
+                      : 'bg-slate-900/90 border-slate-800 hover:border-slate-700 hover:bg-slate-850'
                   }`}
                   title="クリックして出店者の詳細（連絡先・営業許可証・消防・許可証）を表示"
                 >
-                  {/* カード上部アクセントライン（要注意・出禁のみ控えめに表示） */}
-                  {isBanned && (
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-red-600/70" />
-                  )}
-                  {isWarning && (
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-amber-500/70" />
-                  )}
-
                   <div className="space-y-3">
                     {/* 上部: ステータス・登録状況 & 区分 & カテゴリ & 消防/許可証 */}
                     <div className="flex items-center justify-between gap-1.5 flex-wrap">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {isBanned ? (
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 bg-red-600 text-white shadow-sm shadow-red-900/50">
-                            <ShieldAlert className="w-3 h-3" />
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 bg-red-950/70 text-red-300 border border-red-800/60">
+                            <ShieldAlert className="w-3 h-3 text-red-400" />
                             <span>出禁</span>
                           </span>
                         ) : isWarning ? (
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 bg-amber-500 text-slate-950 font-black">
-                            <AlertTriangle className="w-3 h-3" />
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 bg-amber-950/70 text-amber-300 border border-amber-800/60">
+                            <AlertTriangle className="w-3 h-3 text-amber-400" />
                             <span>要注意</span>
                           </span>
                         ) : isRegistered ? (
-                          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-amber-500/10 text-amber-300/80 border border-amber-500/20">
-                            <Store className="w-3 h-3 text-amber-400/70" />
+                          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-slate-800 text-sky-300/90 border border-sky-900/40">
+                            <Store className="w-3 h-3 text-sky-400/80" />
                             <span>出店確定: {vendorEntry.boothNumber || '出店中'}</span>
                           </span>
                         ) : (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-400 border border-slate-700/60">
                             名簿登録
                           </span>
                         )}
 
                         {isOrg ? (
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500 text-slate-950 flex items-center gap-1">
-                            <Building2 className="w-3 h-3" />
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-300 border border-emerald-800/50 flex items-center gap-1">
+                            <Building2 className="w-3 h-3 text-emerald-400" />
                             登録団体
                           </span>
                         ) : (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-800/90 text-slate-400 border border-slate-700/60">
                             店舗
                           </span>
                         )}
 
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/80">
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800/90 text-slate-400 border border-slate-700/60">
                           {getVendorCategoryLabel(vendor.category)}
                         </span>
                       </div>
@@ -614,19 +595,19 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                           <div className="flex items-center gap-1 text-[10px]">
                             {hasFire && (
                               <span
-                                className="px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/30 font-medium flex items-center gap-0.5"
+                                className="px-1.5 py-0.5 rounded bg-slate-800 text-orange-300/90 border border-slate-700 font-medium flex items-center gap-0.5"
                                 title="火気使用対象ブース"
                               >
-                                <Flame className="w-2.5 h-2.5" />
+                                <Flame className="w-2.5 h-2.5 text-orange-400/90" />
                                 <span>消防</span>
                               </span>
                             )}
                             {!isAllEvent && vendorEntry?.permitIssued && (
                               <span
-                                className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium flex items-center gap-0.5"
+                                className="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-300/90 border border-slate-700 font-medium flex items-center gap-0.5"
                                 title="出店許可証発行済"
                               >
-                                <Award className="w-2.5 h-2.5" />
+                                <Award className="w-2.5 h-2.5 text-emerald-400/90" />
                                 <span>許可済</span>
                               </span>
                             )}
@@ -647,7 +628,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                           代表: <strong className="text-slate-300 font-medium">{vendor.ownerName}</strong>
                         </span>
                         {vendor.pastParticipationCount > 0 && (
-                          <span className="text-slate-400 text-[11px]">
+                          <span className="text-slate-500 text-[11px]">
                             (出店{vendor.pastParticipationCount}回)
                           </span>
                         )}
@@ -656,7 +637,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
 
                     {/* 主な出店品目 */}
                     {vendor.menuItems && (
-                      <div className="text-xs text-slate-300 bg-slate-800/40 px-2.5 py-1.5 rounded-lg border border-slate-800/80 flex items-center gap-1.5">
+                      <div className="text-xs text-slate-300 bg-slate-800/50 px-2.5 py-1.5 rounded-lg border border-slate-750/70 flex items-center gap-1.5">
                         <span className="text-[10px] text-slate-400 shrink-0 font-medium">品目:</span>
                         <span className="truncate text-slate-300 text-xs">{vendor.menuItems}</span>
                       </div>
@@ -667,11 +648,11 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                       <div
                         className={`px-2.5 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${
                           isBanned
-                            ? 'bg-red-950/60 border-red-700/60 text-red-200'
-                            : 'bg-amber-950/50 border-amber-700/60 text-amber-200'
+                            ? 'bg-red-950/40 border-red-900/60 text-red-300'
+                            : 'bg-amber-950/40 border-amber-900/60 text-amber-300'
                         }`}
                       >
-                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
                         <span className="truncate text-[11px]">
                           {vendor.statusReason ||
                             (isBanned ? '出禁指定されています（受付不可）' : '要注意店舗です')}
@@ -795,9 +776,9 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                       <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-500/70 inline-block" />
+                        <span className="w-2 h-2 rounded-full bg-amber-600/60 inline-block" />
                         <h3 className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
-                          <Store className="w-4 h-4 text-amber-500/80" />
+                          <Store className="w-4 h-4 text-amber-400/80" />
                           <span>過去出店者 ({storeVendors.length}件)</span>
                         </h3>
                       </div>
@@ -816,9 +797,9 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                       <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-500/70 inline-block" />
+                        <span className="w-2 h-2 rounded-full bg-sky-500/60 inline-block" />
                         <h3 className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
-                          <Store className="w-4 h-4 text-amber-500/80" />
+                          <Store className="w-4 h-4 text-sky-400/80" />
                           <span>過去出店者 ({registeredStores.length}件)</span>
                         </h3>
                       </div>
