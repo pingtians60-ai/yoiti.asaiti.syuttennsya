@@ -32,7 +32,10 @@ import {
   CheckCircle,
   AlertCircle,
   HardDrive,
-  Building2
+  Building2,
+  Zap,
+  Tent,
+  Minus
 } from 'lucide-react';
 import { Vendor, EventEntry, NightMarketEvent, FireApplianceType, SubmittedLicense, isVendorOrganization, getVendorCategoryLabel } from '../../types';
 import { Instagram, getInstagramUrl, getInstagramHandle } from '../../utils/instagram';
@@ -487,7 +490,154 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
     onUpdateEntry(updated);
   };
 
+  // 電源・テントの変更処理
+  const handleTogglePowerOption = (enabled: boolean) => {
+    if (entry && onUpdateEntry) {
+      const currentFee = entry.fee || {
+        baseFee: 3000,
+        powerOption: false,
+        powerFee: 0,
+        tentOption: false,
+        tentCount: 0,
+        tentFee: 0,
+        garbageOption: false,
+        garbageFee: 0,
+        equipmentRentalFee: 0,
+        discount: 0,
+        totalAmount: 3000,
+        paymentStatus: 'unbilled',
+        receiptIssued: false
+      };
+      const pFee = enabled ? 1000 : 0;
+      const tFee = currentFee.tentOption ? (Number(currentFee.tentCount) || 1) * 2000 : 0;
+      const totalAmount = (Number(currentFee.baseFee) || 3000)
+        + pFee
+        + tFee
+        + (Number(currentFee.garbageFee) || 0)
+        + (Number(currentFee.equipmentRentalFee) || 0)
+        - (Number(currentFee.discount) || 0);
 
+      const updated: EventEntry = {
+        ...entry,
+        fee: {
+          ...currentFee,
+          powerOption: enabled,
+          powerFee: pFee,
+          powerWatts: enabled ? (currentFee.powerWatts || 1500) : 0,
+          totalAmount
+        }
+      };
+      onUpdateEntry(updated);
+    }
+    if (onUpdateVendor) {
+      onUpdateVendor({
+        ...vendor,
+        defaultPowerOption: enabled
+      });
+    }
+  };
+
+  const handleToggleTentOption = (enabled: boolean) => {
+    if (entry && onUpdateEntry) {
+      const currentFee = entry.fee || {
+        baseFee: 3000,
+        powerOption: false,
+        powerFee: 0,
+        tentOption: false,
+        tentCount: 0,
+        tentFee: 0,
+        garbageOption: false,
+        garbageFee: 0,
+        equipmentRentalFee: 0,
+        discount: 0,
+        totalAmount: 3000,
+        paymentStatus: 'unbilled',
+        receiptIssued: false
+      };
+      const count = enabled ? Math.max(1, currentFee.tentCount || 1) : 0;
+      const tFee = enabled ? count * 2000 : 0;
+      const pFee = currentFee.powerOption ? 1000 : 0;
+      const totalAmount = (Number(currentFee.baseFee) || 3000)
+        + pFee
+        + tFee
+        + (Number(currentFee.garbageFee) || 0)
+        + (Number(currentFee.equipmentRentalFee) || 0)
+        - (Number(currentFee.discount) || 0);
+
+      const updated: EventEntry = {
+        ...entry,
+        fee: {
+          ...currentFee,
+          tentOption: enabled,
+          tentCount: count,
+          tentFee: tFee,
+          totalAmount
+        }
+      };
+      onUpdateEntry(updated);
+    }
+    if (onUpdateVendor) {
+      onUpdateVendor({
+        ...vendor,
+        defaultTentOption: enabled,
+        defaultTentCount: enabled ? Math.max(1, vendor.defaultTentCount || 1) : 0
+      });
+    }
+  };
+
+  const handleChangeTentCount = (count: number) => {
+    const validCount = Math.max(1, count);
+    if (entry && onUpdateEntry) {
+      const currentFee = entry.fee || {
+        baseFee: 3000,
+        powerOption: false,
+        powerFee: 0,
+        tentOption: false,
+        tentCount: 0,
+        tentFee: 0,
+        garbageOption: false,
+        garbageFee: 0,
+        equipmentRentalFee: 0,
+        discount: 0,
+        totalAmount: 3000,
+        paymentStatus: 'unbilled',
+        receiptIssued: false
+      };
+      const tFee = validCount * 2000;
+      const pFee = currentFee.powerOption ? 1000 : 0;
+      const totalAmount = (Number(currentFee.baseFee) || 3000)
+        + pFee
+        + tFee
+        + (Number(currentFee.garbageFee) || 0)
+        + (Number(currentFee.equipmentRentalFee) || 0)
+        - (Number(currentFee.discount) || 0);
+
+      const updated: EventEntry = {
+        ...entry,
+        fee: {
+          ...currentFee,
+          tentOption: true,
+          tentCount: validCount,
+          tentFee: tFee,
+          totalAmount
+        }
+      };
+      onUpdateEntry(updated);
+    }
+    if (onUpdateVendor) {
+      onUpdateVendor({
+        ...vendor,
+        defaultTentOption: true,
+        defaultTentCount: validCount
+      });
+    }
+  };
+
+  const isPowerRented = entry?.fee?.powerOption ?? vendor.defaultPowerOption ?? false;
+  const isTentRented = entry?.fee?.tentOption ?? vendor.defaultTentOption ?? false;
+  const currentTentCount = entry?.fee?.tentCount ?? vendor.defaultTentCount ?? 1;
+  const powerFee = isPowerRented ? 1000 : 0;
+  const tentFee = isTentRented ? currentTentCount * 2000 : 0;
 
   const hasFire = entry?.fireSafety.hasFireAppliance ?? (
     vendor.category === 'food' || vendor.tags?.some(t => t.includes('火気') || t.includes('ガス') || t.includes('炭火'))
@@ -538,6 +688,20 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
                 {entry?.boothNumber && (
                   <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-800 text-sky-300 border border-sky-800/50 font-semibold">
                     ブース: {entry.boothNumber}
+                  </span>
+                )}
+
+                {/* 電源・テントの利用バッジ */}
+                {isPowerRented && (
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-950/70 text-amber-300 border border-amber-800/60 font-semibold flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-amber-400" />
+                    電源あり (¥1,000)
+                  </span>
+                )}
+                {isTentRented && (
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-sky-950/70 text-sky-300 border border-sky-800/60 font-semibold flex items-center gap-1">
+                    <Tent className="w-3 h-3 text-sky-400" />
+                    テント: {currentTentCount}張 (¥{(currentTentCount * 2000).toLocaleString()})
                   </span>
                 )}
               </div>
@@ -733,6 +897,203 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* 設備レンタル（電源・テント） */}
+              <div className="pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    <span>設備レンタル（電源・テント）</span>
+                  </h3>
+                  <div className="text-[11px] text-slate-400">
+                    電源: <strong className="text-amber-300">¥1,000</strong> / テント: <strong className="text-sky-300">¥2,000 (1張あたり)</strong>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* 電源レンタルカード */}
+                  <div className={`p-4 rounded-2xl border transition-all ${
+                    isPowerRented
+                      ? 'bg-amber-950/25 border-amber-500/50 shadow-lg shadow-amber-950/20'
+                      : 'bg-slate-850 border-slate-800'
+                  }`}>
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-xl ${
+                          isPowerRented
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : 'bg-slate-800 text-slate-400 border border-slate-750'
+                        }`}>
+                          <Zap className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-white flex items-center gap-1.5">
+                            電源利用
+                            <span className="text-xs font-mono font-bold text-amber-400">¥1,000</span>
+                          </div>
+                          <span className="text-[11px] text-slate-400">1口利用（100V電源）</span>
+                        </div>
+                      </div>
+
+                      <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border ${
+                        isPowerRented
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}>
+                        {isPowerRented ? '⚡ 借りる' : '借りない'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePowerOption(false)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold transition border ${
+                          !isPowerRented
+                            ? 'bg-slate-700/80 text-white border-slate-600 shadow-sm'
+                            : 'bg-slate-900/60 text-slate-400 hover:text-white border-slate-800 hover:bg-slate-800'
+                        }`}
+                      >
+                        借りない (¥0)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePowerOption(true)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold transition border flex items-center justify-center gap-1 ${
+                          isPowerRented
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md font-black'
+                            : 'bg-amber-950/40 text-amber-300 hover:text-amber-200 border-amber-800/60 hover:bg-amber-900/50'
+                        }`}
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        借りる (¥1,000)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* テントレンタルカード（複数個対応） */}
+                  <div className={`p-4 rounded-2xl border transition-all ${
+                    isTentRented
+                      ? 'bg-sky-950/25 border-sky-500/50 shadow-lg shadow-sky-950/20'
+                      : 'bg-slate-850 border-slate-800'
+                  }`}>
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-xl ${
+                          isTentRented
+                            ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                            : 'bg-slate-800 text-slate-400 border border-slate-750'
+                        }`}>
+                          <Tent className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-white flex items-center gap-1.5">
+                            テント利用
+                            <span className="text-xs font-mono font-bold text-sky-400">¥2,000/張</span>
+                          </div>
+                          <span className="text-[11px] text-slate-400">複数個レンタル可能</span>
+                        </div>
+                      </div>
+
+                      <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border ${
+                        isTentRented
+                          ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}>
+                        {isTentRented ? `⛺ ${currentTentCount}張 借りる` : '借りない'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTentOption(false)}
+                          className={`py-2 px-3 rounded-xl text-xs font-bold transition border ${
+                            !isTentRented
+                              ? 'bg-slate-700/80 text-white border-slate-600 shadow-sm'
+                              : 'bg-slate-900/60 text-slate-400 hover:text-white border-slate-800 hover:bg-slate-800'
+                          }`}
+                        >
+                          借りない (¥0)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTentOption(true)}
+                          className={`py-2 px-3 rounded-xl text-xs font-bold transition border flex items-center justify-center gap-1 ${
+                            isTentRented
+                              ? 'bg-sky-500 text-slate-950 border-sky-400 shadow-md font-black'
+                              : 'bg-sky-950/40 text-sky-300 hover:text-sky-200 border-sky-800/60 hover:bg-sky-900/50'
+                          }`}
+                        >
+                          <Tent className="w-3.5 h-3.5" />
+                          借りる
+                        </button>
+                      </div>
+
+                      {/* 数量セレクター（借りる場合） */}
+                      {isTentRented && (
+                        <div className="pt-2 border-t border-sky-900/40 flex items-center justify-between gap-3 bg-slate-900/70 p-2.5 rounded-xl border border-sky-900/30">
+                          <div className="text-xs text-slate-300">
+                            <span className="text-[11px] text-slate-400 block">レンタル数量</span>
+                            <strong className="text-sky-300 font-mono font-bold">
+                              ¥2,000 × {currentTentCount}張 = ¥{(currentTentCount * 2000).toLocaleString()}
+                            </strong>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleChangeTentCount(currentTentCount - 1)}
+                              disabled={currentTentCount <= 1}
+                              className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-750 disabled:opacity-40 disabled:hover:bg-slate-800 text-white font-bold flex items-center justify-center border border-slate-700 transition active:scale-95"
+                              title="1張減らす"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="w-10 text-center font-mono font-black text-white text-sm bg-slate-950/70 py-1 rounded-lg border border-slate-800">
+                              {currentTentCount}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleChangeTentCount(currentTentCount + 1)}
+                              className="w-8 h-8 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center justify-center border border-sky-400/50 transition active:scale-95 shadow-sm"
+                              title="1張増やす"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* レンタル合計サマリーバー */}
+                {(isPowerRented || isTentRented) && (
+                  <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-700/80 flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <div className="flex items-center gap-3 text-slate-300 flex-wrap">
+                      <span className="text-slate-400 text-[11px]">設備レンタル内訳:</span>
+                      {isPowerRented && (
+                        <span className="flex items-center gap-1 text-amber-300 font-medium">
+                          <Zap className="w-3.5 h-3.5" /> 電源 ¥1,000
+                        </span>
+                      )}
+                      {isTentRented && (
+                        <span className="flex items-center gap-1 text-sky-300 font-medium">
+                          <Tent className="w-3.5 h-3.5" /> テント {currentTentCount}張 (¥{(currentTentCount * 2000).toLocaleString()})
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <span className="text-slate-400">レンタル合計:</span>
+                      <strong className="text-base font-black font-mono text-emerald-400">
+                        ¥{(powerFee + tentFee).toLocaleString()}
+                      </strong>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 連絡先・所在地 */}

@@ -89,6 +89,9 @@ export interface Vendor {
   statusReason?: string;                 // 出禁・要注意理由（例: 2025年夏祭りで無断キャンセル、油の不法投棄等）
   blacklistedAt?: string;                // 出禁指定日
   tags: string[];                        // タグ（例: "人気店", "要注意", "電源必要", "大型車両" 等）
+  defaultPowerOption?: boolean;          // 電源レンタルの希望（1,000円）
+  defaultTentOption?: boolean;           // テントレンタルの希望（1張 2,000円）
+  defaultTentCount?: number;             // 希望テント張数
   internalNotes?: string;                // 運営用メモ
   pastParticipationCount: number;        // 過去参加回数
   pastEvents: string[];                  // 過去参加したイベント名

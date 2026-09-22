@@ -29,7 +29,9 @@ import {
   Sparkles,
   UserPlus,
   X,
-  Check
+  Check,
+  Zap,
+  Tent
 } from 'lucide-react';
 import { Vendor, VendorStatus, EventEntry, NightMarketEvent, isVendorOrganization, getVendorCategoryLabel, BoothArea } from '../../types';
 import { mergePdfDocuments, createSampleDocPdf, FileItemToMerge } from '../../utils/pdfMerger';
@@ -637,7 +639,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                         </span>
                       </div>
 
-                      {/* 消防・許可証インジケーター */}
+                      {/* 消防・許可証・レンタル設備インジケーター */}
                       {(() => {
                         const hasFire =
                           vendorEntry?.fireSafety?.hasFireAppliance ??
@@ -646,8 +648,30 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                             vendor.tags?.some(
                               (t) => t.includes('火気') || t.includes('ガス') || t.includes('炭火')
                             ));
+                        const isPower = vendorEntry?.fee?.powerOption ?? vendor.defaultPowerOption ?? false;
+                        const isTent = vendorEntry?.fee?.tentOption ?? vendor.defaultTentOption ?? false;
+                        const tCount = vendorEntry?.fee?.tentCount ?? vendor.defaultTentCount ?? 1;
+
                         return (
                           <div className="flex items-center gap-1 text-[10px]">
+                            {isPower && (
+                              <span
+                                className="px-1.5 py-0.5 rounded bg-amber-950/70 text-amber-300 border border-amber-800/60 font-medium flex items-center gap-0.5"
+                                title="電源レンタル利用 (¥1,000)"
+                              >
+                                <Zap className="w-2.5 h-2.5 text-amber-400" />
+                                <span>電源</span>
+                              </span>
+                            )}
+                            {isTent && (
+                              <span
+                                className="px-1.5 py-0.5 rounded bg-sky-950/70 text-sky-300 border border-sky-800/60 font-medium flex items-center gap-0.5"
+                                title={`テントレンタル利用 (${tCount}張 ¥${(tCount * 2000).toLocaleString()})`}
+                              >
+                                <Tent className="w-2.5 h-2.5 text-sky-400" />
+                                <span>テント{tCount > 1 ? `(${tCount})` : ''}</span>
+                              </span>
+                            )}
                             {hasFire && (
                               <span
                                 className="px-1.5 py-0.5 rounded bg-slate-800 text-orange-300/90 border border-slate-700 font-medium flex items-center gap-0.5"
