@@ -112,6 +112,8 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
       vendor.category === 'kitchen_car' ? 'KITCHEN_CAR' : 
       vendor.category === 'food' ? 'FOOD_STALL' : 'OUTDOOR';
 
+    const isWcp = vendor.category === 'wcp';
+    const baseFee = isWcp ? 0 : 3000;
     const pFee = vendor.defaultPowerOption ? 1000 : 0;
     const tCount = vendor.defaultTentCount ?? 1;
     const tFee = (vendor.defaultTentOption ?? false) ? tCount * 2000 : 0;
@@ -124,7 +126,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
       boothArea: assignedArea,
       boothNumber: `${entries.length + 1}`,
       fee: {
-        baseFee: 3000,
+        baseFee,
         powerOption: vendor.defaultPowerOption ?? false,
         powerFee: pFee,
         powerWatts: vendor.defaultPowerOption ? 1500 : 0,
@@ -135,8 +137,8 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
         garbageFee: 0,
         equipmentRentalFee: 0,
         discount: 0,
-        totalAmount: 3000 + pFee + tFee,
-        paymentStatus: 'unbilled',
+        totalAmount: baseFee + pFee + tFee,
+        paymentStatus: isWcp && (pFee + tFee === 0) ? 'paid' : 'unbilled',
         receiptIssued: false
       },
       fireSafety: {
@@ -186,6 +188,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
       const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
 
       const normalizedCategory = 
+        v.category === 'wcp' ? 'wcp' :
         v.category === 'kitchen_car' ? 'kitchen_car' :
         (v.category === 'food' || v.category === 'drink') ? 'food' : 'outdoor';
       const matchesCategory = categoryFilter === 'ALL' || normalizedCategory === categoryFilter || v.category === categoryFilter;
@@ -585,6 +588,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
             <option value="kitchen_car">キッチンカー</option>
             <option value="food">飲食露店</option>
             <option value="outdoor">屋外出店（物販・体験）</option>
+            <option value="wcp">WCP（出店料0円）</option>
           </select>
 
           <span className="text-xs text-slate-400 ml-2 whitespace-nowrap">
@@ -1118,6 +1122,36 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
           onClose={() => setEditingVendor(null)}
           onSave={(updated) => {
             onUpdateVendors(vendors.map((v) => (v.id === updated.id ? updated : v)));
+
+            // entries側も自動同期（WCPなら出店料0円、電源・テントも即時同期）
+            const updatedEntries = entries.map((e) => {
+              if (e.vendorId === updated.id || e.vendorSnapshot?.id === updated.id) {
+                const isWcp = updated.category === 'wcp';
+                const baseFee = isWcp ? 0 : e.fee.baseFee;
+                const pFee = updated.defaultPowerOption ? 1000 : 0;
+                const tCount = updated.defaultTentCount ?? 1;
+                const tFee = updated.defaultTentOption ? tCount * 2000 : 0;
+                const totalAmount = baseFee + pFee + tFee + (Number(e.fee.garbageFee) || 0) + (Number(e.fee.equipmentRentalFee) || 0) - (Number(e.fee.discount) || 0);
+
+                return {
+                  ...e,
+                  vendorSnapshot: { ...e.vendorSnapshot, ...updated },
+                  fee: {
+                    ...e.fee,
+                    baseFee,
+                    powerOption: updated.defaultPowerOption ?? e.fee.powerOption,
+                    powerFee: pFee,
+                    tentOption: updated.defaultTentOption ?? e.fee.tentOption,
+                    tentCount: tCount,
+                    tentFee: tFee,
+                    totalAmount
+                  }
+                };
+              }
+              return e;
+            });
+            onUpdateEntries(updatedEntries);
+
             if (selectedVendorForDetail && selectedVendorForDetail.id === updated.id) {
               setSelectedVendorForDetail(updated);
             }
@@ -1263,6 +1297,7 @@ const SelectPastVendorModal: React.FC<SelectPastVendorModalProps> = ({
             <option value="kitchen_car">キッチンカー</option>
             <option value="food">飲食露店</option>
             <option value="outdoor">屋外出店</option>
+            <option value="wcp">WCP（出店料0円）</option>
           </select>
         </div>
 

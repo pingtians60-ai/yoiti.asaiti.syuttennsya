@@ -744,12 +744,13 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
                     onChange={(e) => {
                       const newArea = e.target.value as BoothArea;
                       const areaDef = event.areas.find((a) => a.code === newArea);
+                      const isWcp = editingEntry.vendorSnapshot.category === 'wcp';
                       setEditingEntry({
                         ...editingEntry,
                         boothArea: newArea,
                         fee: recalculateFee({
                           ...editingEntry.fee,
-                          baseFee: areaDef?.defaultBaseFee || editingEntry.fee.baseFee
+                          baseFee: isWcp ? 0 : (areaDef?.defaultBaseFee || editingEntry.fee.baseFee)
                         })
                       });
                     }}
@@ -1226,7 +1227,27 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
             }
             const updatedEntries = entries.map((e) => {
               if (e.vendorId === updated.id || e.vendorSnapshot?.id === updated.id) {
-                return { ...e, vendorSnapshot: { ...e.vendorSnapshot, ...updated } };
+                const isWcp = updated.category === 'wcp';
+                const baseFee = isWcp ? 0 : e.fee.baseFee;
+                const pFee = updated.defaultPowerOption ? 1000 : 0;
+                const tCount = updated.defaultTentCount ?? 1;
+                const tFee = updated.defaultTentOption ? tCount * 2000 : 0;
+                const totalAmount = baseFee + pFee + tFee + (Number(e.fee.garbageFee) || 0) + (Number(e.fee.equipmentRentalFee) || 0) - (Number(e.fee.discount) || 0);
+
+                return {
+                  ...e,
+                  vendorSnapshot: { ...e.vendorSnapshot, ...updated },
+                  fee: {
+                    ...e.fee,
+                    baseFee,
+                    powerOption: updated.defaultPowerOption ?? e.fee.powerOption,
+                    powerFee: pFee,
+                    tentOption: updated.defaultTentOption ?? e.fee.tentOption,
+                    tentCount: tCount,
+                    tentFee: tFee,
+                    totalAmount
+                  }
+                };
               }
               return e;
             });
@@ -1276,7 +1297,7 @@ const NewBoothModal: React.FC<NewBoothModalProps> = ({
 
   const selectedVendor = vendors.find((v) => v.id === selectedVendorId);
   const areaDef = event.areas.find((a) => a.code === boothArea);
-  const baseFee = areaDef?.defaultBaseFee || 6000;
+  const baseFee = selectedVendor?.category === 'wcp' ? 0 : (areaDef?.defaultBaseFee || 6000);
   const powerFee = powerOption ? powerFeeInput : 0;
   const tentFee = tentOption ? tentFeeInput : 0;
   const garbageFee = garbageOption ? 500 : 0;

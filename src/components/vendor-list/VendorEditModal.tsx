@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Edit3, Building2, Store, Sparkles, Trash2 } from 'lucide-react';
+import { Edit3, Building2, Store, Sparkles, Trash2, Zap, Tent, Minus, Plus } from 'lucide-react';
 import { Vendor, getVendorCategoryLabel } from '../../types';
 import { Instagram } from '../../utils/instagram';
 import { inspectVendorWithAi, VendorAiInspectionResult } from '../../utils/gemini';
@@ -17,6 +17,7 @@ const categoryLabels: Record<string, string> = {
   kitchen_car: 'キッチンカー',
   food: '飲食露店',
   outdoor: '屋外出店（物販・体験）',
+  wcp: 'WCP（出店料0円）',
   drink: '飲食露店',
   goods: '屋外出店（物販・体験）',
   game: '屋外出店（物販・体験）',
@@ -283,15 +284,23 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
                       ? 'kitchen_car'
                       : formData.category === 'food' || formData.category === 'drink'
                       ? 'food'
+                      : formData.category === 'wcp'
+                      ? 'wcp'
                       : 'outdoor'
                   }
                   onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold"
                 >
                   <option value="kitchen_car">キッチンカー</option>
                   <option value="food">飲食露店</option>
                   <option value="outdoor">屋外出店（物販・体験）</option>
+                  <option value="wcp">WCP（出店料0円）</option>
                 </select>
+                {formData.category === 'wcp' && (
+                  <p className="text-[11px] text-emerald-400 mt-1 font-medium flex items-center gap-1">
+                    ✓ WCPジャンルは基本出店料が0円（無料）に設定されます。
+                  </p>
+                )}
               </div>
             </div>
 
@@ -330,6 +339,167 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
                 placeholder="例: 和歌山県田辺市..."
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
               />
+            </div>
+
+            {/* 設備レンタル（電源・テント）設定 */}
+            <div className="p-4 rounded-xl border bg-slate-800/60 border-slate-700 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-200 text-sm flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <span>設備レンタル設定（電源・テント）</span>
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  電源: <strong className="text-amber-300">¥1,000</strong> / テント: <strong className="text-sky-300">¥2,000 (1張あたり)</strong>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 電源カード */}
+                <div className={`p-3 rounded-xl border transition ${
+                  formData.defaultPowerOption
+                    ? 'bg-amber-950/30 border-amber-500/50 shadow-sm'
+                    : 'bg-slate-850/80 border-slate-750'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className={`p-1.5 rounded-lg ${formData.defaultPowerOption ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
+                        <Zap className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white">電源利用</div>
+                        <div className="text-[10px] text-amber-400 font-mono">¥1,000</div>
+                      </div>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                      formData.defaultPowerOption
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        : 'bg-slate-800 text-slate-400 border-slate-700'
+                    }`}>
+                      {formData.defaultPowerOption ? '⚡ 借りる' : '借りない'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, defaultPowerOption: false })}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border ${
+                        !formData.defaultPowerOption
+                          ? 'bg-slate-700 text-white border-slate-600 shadow-sm'
+                          : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:bg-slate-800'
+                      }`}
+                    >
+                      借りない (¥0)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, defaultPowerOption: true })}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border flex items-center justify-center gap-1 ${
+                        formData.defaultPowerOption
+                          ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-sm'
+                          : 'bg-amber-950/40 text-amber-300 border-amber-800/60 hover:bg-amber-900/50'
+                      }`}
+                    >
+                      <Zap className="w-3 h-3" />
+                      借りる (¥1,000)
+                    </button>
+                  </div>
+                </div>
+
+                {/* テントカード */}
+                <div className={`p-3 rounded-xl border transition ${
+                  formData.defaultTentOption
+                    ? 'bg-sky-950/30 border-sky-500/50 shadow-sm'
+                    : 'bg-slate-850/80 border-slate-750'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className={`p-1.5 rounded-lg ${formData.defaultTentOption ? 'bg-sky-500/20 text-sky-400' : 'bg-slate-800 text-slate-400'}`}>
+                        <Tent className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white">テント利用</div>
+                        <div className="text-[10px] text-sky-400 font-mono">¥2,000/張</div>
+                      </div>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                      formData.defaultTentOption
+                        ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                        : 'bg-slate-800 text-slate-400 border-slate-700'
+                    }`}>
+                      {formData.defaultTentOption ? `⛺ ${formData.defaultTentCount || 1}張` : '借りない'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, defaultTentOption: false })}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border ${
+                          !formData.defaultTentOption
+                            ? 'bg-slate-700 text-white border-slate-600 shadow-sm'
+                            : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:bg-slate-800'
+                        }`}
+                      >
+                        借りない (¥0)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({
+                          ...formData,
+                          defaultTentOption: true,
+                          defaultTentCount: formData.defaultTentCount || 1
+                        })}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border flex items-center justify-center gap-1 ${
+                          formData.defaultTentOption
+                            ? 'bg-sky-500 text-slate-950 border-sky-400 font-black shadow-sm'
+                            : 'bg-sky-950/40 text-sky-300 border-sky-800/60 hover:bg-sky-900/50'
+                        }`}
+                      >
+                        <Tent className="w-3 h-3" />
+                        借りる
+                      </button>
+                    </div>
+
+                    {formData.defaultTentOption && (
+                      <div className="pt-1.5 border-t border-sky-900/30 flex items-center justify-between gap-2 bg-slate-900/60 p-2 rounded-lg">
+                        <span className="text-[11px] text-sky-300 font-mono font-bold">
+                          ¥2,000 × {formData.defaultTentCount || 1}張 = ¥{((formData.defaultTentCount || 1) * 2000).toLocaleString()}
+                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({
+                              ...prev,
+                              defaultTentCount: Math.max(1, (prev.defaultTentCount || 1) - 1)
+                            }))}
+                            disabled={(formData.defaultTentCount || 1) <= 1}
+                            className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-750 disabled:opacity-40 text-white font-bold flex items-center justify-center border border-slate-700"
+                            title="1張減らす"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="w-8 text-center font-mono font-black text-white text-xs bg-slate-950 py-0.5 rounded border border-slate-800">
+                            {formData.defaultTentCount || 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({
+                              ...prev,
+                              defaultTentCount: (prev.defaultTentCount || 1) + 1
+                            }))}
+                            className="w-6 h-6 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center justify-center border border-sky-400/50"
+                            title="1張増やす"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* 出店品目・メニュー & 裏側AI完全自動判定 */}
