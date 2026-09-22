@@ -64,8 +64,8 @@ export const Navigation: React.FC<NavigationProps> = ({
       : []),
     {
       id: 'vendor',
-      label: isAllEvent ? '出店者・登録団体' : '出店者',
-      description: isAllEvent ? '出店店舗・登録団体名簿・出禁リスト' : '出店者名簿・消防・許可証',
+      label: isAllEvent ? '過去出店者' : '出店者一覧',
+      description: isAllEvent ? '夜市全体の過去出店者・登録団体名簿' : '今回の参加出店者・消防・許可証',
       icon: Users,
       badge: totalVendorAlerts > 0 ? totalVendorAlerts : undefined,
       badgeColor: 'bg-amber-500 text-slate-950',

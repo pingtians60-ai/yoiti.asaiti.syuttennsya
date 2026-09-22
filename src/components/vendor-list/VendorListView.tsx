@@ -26,9 +26,12 @@ import {
   Printer,
   ExternalLink,
   Building2,
-  Sparkles
+  Sparkles,
+  UserPlus,
+  X,
+  Check
 } from 'lucide-react';
-import { Vendor, VendorStatus, EventEntry, NightMarketEvent, isVendorOrganization, getVendorCategoryLabel } from '../../types';
+import { Vendor, VendorStatus, EventEntry, NightMarketEvent, isVendorOrganization, getVendorCategoryLabel, BoothArea } from '../../types';
 import { mergePdfDocuments, createSampleDocPdf, FileItemToMerge } from '../../utils/pdfMerger';
 import { Instagram, getInstagramUrl, getInstagramHandle, InstagramBadge } from '../../utils/instagram';
 import { 
@@ -57,6 +60,9 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
   const isAllEvent = 
     event.name === '夜市全体' || 
     event.id === 'event-all' || 
+    event.name.includes('出店者募集中') || 
+    event.name.includes('募集中') ||
+    event.name.trim() === '夜市' ||
     !event.date;
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,8 +75,73 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
   const [isMergingPdfs, setIsMergingPdfs] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSelectPastVendorModalOpen, setIsSelectPastVendorModalOpen] = useState(false);
   const [isDeleteUnlocked, setIsDeleteUnlocked] = useState(false);
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
+
+  // エントリー登録ID一覧のメモ化
+  const registeredVendorIds = useMemo(() => {
+    return new Set(entries.map((e) => e.vendorId || e.vendorSnapshot?.id).filter(Boolean));
+  }, [entries]);
+
+  // 過去出店者をこのイベントに追加する処理
+  const handleAddVendorToEvent = (vendor: Vendor) => {
+    if (vendor.status === 'banned') {
+      const confirmBanned = window.confirm(
+        `【警告】「${vendor.name}」は出禁指定されています。\n理由: ${vendor.statusReason || 'トラブル防止'}\n\n本当に出店エントリーを追加しますか？`
+      );
+      if (!confirmBanned) return;
+    }
+
+    const assignedArea: BoothArea = 
+      vendor.category === 'kitchen_car' ? 'KITCHEN_CAR' : 
+      vendor.category === 'food' ? 'FOOD_STALL' : 'OUTDOOR';
+
+    const newEntry: EventEntry = {
+      id: `entry-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      eventId: event.id,
+      vendorId: vendor.id,
+      vendorSnapshot: vendor,
+      boothArea: assignedArea,
+      boothNumber: `${entries.length + 1}`,
+      fee: {
+        baseFee: 3000,
+        powerOption: false,
+        powerFee: 0,
+        powerWatts: 0,
+        tentOption: false,
+        tentCount: 0,
+        tentFee: 0,
+        garbageOption: false,
+        garbageFee: 0,
+        equipmentRentalFee: 0,
+        discount: 0,
+        totalAmount: 3000,
+        paymentStatus: 'unbilled',
+        receiptIssued: false
+      },
+      fireSafety: {
+        hasFireAppliance: vendor.category === 'food' || vendor.category === 'drink',
+        appliances: (vendor.category === 'food' || vendor.category === 'drink') ? [
+          { type: 'cassette_stove', name: '調理用コンロ', fuel: 'カセットボンベ', count: 1 }
+        ] : [],
+        fireExtinguisher: {
+          installed: true,
+          count: 1,
+          type: 'ABC粉末消火器',
+          capacity: '10型',
+          manufacturingYear: '2025年製',
+          inspectionValid: true
+        },
+        submittedDocuments: [],
+        checkedByStaff: false
+      },
+      permitIssued: false,
+      entryStatus: 'confirmed'
+    };
+
+    onUpdateEntries([...entries, newEntry]);
+  };
 
   // フィルター & 五十音順（AI判定）ソート
   const filteredVendors = useMemo(() => {
@@ -102,42 +173,27 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
       return matchesSearch && matchesStatus && matchesCategory && matchesType && matchesKanaRow;
     });
 
-    // 夜市全体表示時は、エントリー（ブース出店）の概念がないため、アクティブ店舗と出禁店舗のみでシンプルに整理
+    // 夜市全体表示時は、過去出店者マスター（全出店者・登録団体）
     if (isAllEvent) {
       let activeList = sortVendorsByJapaneseAlphabet(result.filter((v) => v.status !== 'banned'));
       let bannedList = sortVendorsByJapaneseAlphabet(result.filter((v) => v.status === 'banned'));
       return [...activeList, ...bannedList];
     }
 
-    // 個別イベント選択時：エントリー登録されている店舗のID一覧
-    const registeredVendorIds = new Set(
-      entries.map((e) => e.vendorId || e.vendorSnapshot?.id).filter(Boolean)
+    // 個別イベント選択時：このイベントに出店登録（エントリー）されている店舗・団体のみ！
+    // 夜市全体の過去出店者マスターとは明確に分離
+    const eventVendors = result.filter((v) => registeredVendorIds.has(v.id));
+    const registeredList = sortVendorsByJapaneseAlphabet(
+      eventVendors.filter((v) => v.status !== 'banned')
+    );
+    const bannedList = sortVendorsByJapaneseAlphabet(
+      eventVendors.filter((v) => v.status === 'banned')
     );
 
-    // 1. 今回のイベントに出店登録（エントリー済）の店舗（一番上に表示）
-    let registeredList = sortVendorsByJapaneseAlphabet(
-      result.filter((v) => v.status !== 'banned' && registeredVendorIds.has(v.id))
-    );
+    return [...registeredList, ...bannedList];
+  }, [vendors, entries, searchTerm, statusFilter, categoryFilter, typeFilter, kanaRow, isAllEvent, registeredVendorIds]);
 
-    // 2. 名簿登録店舗・過去出店者（今回のイベントは未登録）
-    let unregisteredList = sortVendorsByJapaneseAlphabet(
-      result.filter((v) => v.status !== 'banned' && !registeredVendorIds.has(v.id))
-    );
-
-    // 3. 出禁・受付不可店舗（最下部）
-    let bannedList = sortVendorsByJapaneseAlphabet(
-      result.filter((v) => v.status === 'banned')
-    );
-
-    return [...registeredList, ...unregisteredList, ...bannedList];
-  }, [vendors, entries, searchTerm, statusFilter, categoryFilter, typeFilter, kanaRow, isAllEvent]);
-
-  // エントリー登録ID一覧のメモ化
-  const registeredVendorIds = useMemo(() => {
-    return new Set(entries.map((e) => e.vendorId || e.vendorSnapshot?.id).filter(Boolean));
-  }, [entries]);
-
-  // グループ別リスト（最上部: 登録団体一覧、中間上: 過去出店者、中間下: 一般未登録店舗、最下部: 出禁店舗）
+  // グループ別リスト
   const organizationVendors = useMemo(
     () => filteredVendors.filter((v) => v.status !== 'banned' && isVendorOrganization(v)),
     [filteredVendors]
@@ -146,23 +202,20 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
     () => filteredVendors.filter((v) => v.status !== 'banned' && !isVendorOrganization(v)),
     [filteredVendors]
   );
-  const registeredStores = useMemo(
-    () => filteredVendors.filter((v) => v.status !== 'banned' && !isVendorOrganization(v) && registeredVendorIds.has(v.id)),
-    [filteredVendors, registeredVendorIds]
-  );
-  const unregisteredStores = useMemo(
-    () => filteredVendors.filter((v) => v.status !== 'banned' && !isVendorOrganization(v) && !registeredVendorIds.has(v.id)),
-    [filteredVendors, registeredVendorIds]
-  );
   const bannedVendors = useMemo(
     () => filteredVendors.filter((v) => v.status === 'banned'),
     [filteredVendors]
   );
 
-  const bannedCount = vendors.filter((v) => v.status === 'banned').length;
-  const warningCount = vendors.filter((v) => v.status === 'warning').length;
-  const orgCount = vendors.filter(isVendorOrganization).length;
-  const storeCount = vendors.length - orgCount;
+  // カウント（夜市全体はマスター基準、個別イベントは当該イベント参加者基準）
+  const activeScopeVendors = useMemo(() => {
+    return isAllEvent ? vendors : vendors.filter((v) => registeredVendorIds.has(v.id));
+  }, [isAllEvent, vendors, registeredVendorIds]);
+
+  const bannedCount = activeScopeVendors.filter((v) => v.status === 'banned').length;
+  const warningCount = activeScopeVendors.filter((v) => v.status === 'warning').length;
+  const orgCount = activeScopeVendors.filter(isVendorOrganization).length;
+  const storeCount = activeScopeVendors.length - orgCount;
 
   // CSVエクスポート
   const handleExportCsv = () => {
@@ -277,12 +330,12 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-amber-500"></span>
-            {isAllEvent ? '出店者マスター名簿（過去の出店者一覧・登録団体）' : `出店者名簿（${event.name}）`}
+            {isAllEvent ? '過去出店者マスター名簿（過去の出店者一覧・登録団体）' : `出店者一覧（${event.name}）`}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
             {isAllEvent
-              ? '過去の全出店実績、登録団体、トラブル・マナー違反による出禁や要注意フラグを一括管理します。※特定イベントへの出店（エントリー）は各イベントを選択して行います。'
-              : 'このイベントに出店エントリーしている出店者と、過去出店者を確認できます。'}
+              ? '夜市全体の過去の出店店舗、登録団体、トラブル・マナー違反による出禁や要注意フラグを一括管理します。※特定イベントへの出店登録は各イベントを選択して行います。'
+              : `「${event.name}（${event.date || '日程未定'}）」に参加・出店登録されている店舗および団体の一覧です。`}
           </p>
         </div>
 
@@ -358,6 +411,17 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
             </button>
           )}
 
+          {/* 過去出店者から追加ボタン（個別イベント選択時のみ表示） */}
+          {!isAllEvent && (
+            <button
+              onClick={() => setIsSelectPastVendorModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/40 transition"
+              title="過去の出店者名簿からこのイベントに出店者を追加します"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>過去出店者から追加</span>
+            </button>
+          )}
 
           <button
             onClick={handleExportCsv}
@@ -464,10 +528,40 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
         </div>
       </div>
 
-      {/* 出店者リスト表示領域（過去出店者は一番上、未登録店舗は中間、出禁店舗は最下部） */}
+      {/* 出店者リスト表示領域 */}
       {filteredVendors.length === 0 ? (
-        <div className="py-12 text-center text-slate-500 text-xs bg-slate-900/40 rounded-2xl border border-slate-800">
-          条件に一致する出店者が見つかりませんでした。
+        <div className="py-14 px-4 text-center bg-slate-900/40 rounded-3xl border border-slate-800 space-y-4">
+          <Store className="w-12 h-12 text-slate-600 mx-auto" />
+          <div className="space-y-1">
+            <h4 className="text-base font-bold text-white">
+              {!isAllEvent 
+                ? `「${event.name}」に出店登録されている店舗・団体はありません` 
+                : '出店者が見つかりませんでした'}
+            </h4>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              {!isAllEvent
+                ? '夜市全体の過去出店者から選択してエントリーするか、新しい出店者を登録してください。'
+                : '検索条件を変更するか、右上の「出店者新規登録」から新しい店舗を追加してください。'}
+            </p>
+          </div>
+          {!isAllEvent && (
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setIsSelectPastVendorModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black shadow-md shadow-amber-500/20 transition flex items-center gap-1.5"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>過去出店者から追加</span>
+              </button>
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>出店者新規登録</span>
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-8">
@@ -519,11 +613,11 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                         ) : isRegistered ? (
                           <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-slate-800 text-sky-300/90 border border-sky-900/40">
                             <Store className="w-3 h-3 text-sky-400/80" />
-                            <span>出店確定: {vendorEntry.boothNumber || '出店中'}</span>
+                            <span>ブース: {vendorEntry?.boothNumber || '確定'}</span>
                           </span>
                         ) : (
                           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-400 border border-slate-700/60">
-                            名簿登録
+                            過去出店者
                           </span>
                         )}
 
@@ -691,7 +785,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
 
             return (
               <>
-                {/* 0. 最上部: 登録団体一覧 */}
+                {/* 0. 登録団体一覧 */}
                 {organizationVendors.length > 0 && (
                   <div className="space-y-3 bg-emerald-950/15 border border-emerald-800/40 rounded-2xl p-4 sm:p-5 shadow-sm">
                     <div className="flex items-center justify-between pb-3 border-b border-emerald-800/40">
@@ -701,26 +795,22 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                         </div>
                         <div>
                           <h3 className="text-base font-bold text-white flex items-center gap-2">
-                            <span>登録団体一覧</span>
-                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 font-black">
-                              {organizationVendors.length}件
-                            </span>
+                            <span>{isAllEvent ? '登録団体一覧' : `出店団体 (${organizationVendors.length}件)`}</span>
+                            {isAllEvent && (
+                              <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 font-black">
+                                {organizationVendors.length}件
+                              </span>
+                            )}
                           </h3>
                           <p className="text-[11px] text-emerald-400/80 mt-0.5">
-                            地域振興会・サークル・NPO等の公認登録団体
+                            {isAllEvent ? '地域振興会・サークル・NPO等の公認登録団体名簿' : 'このイベントに出店エントリー済の公認登録団体'}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {isAllEvent ? (
-                          <span className="text-xs text-emerald-300 bg-emerald-900/40 border border-emerald-700/50 px-3 py-1 rounded-full font-bold">
-                            登録団体名簿: {organizationVendors.length}件
-                          </span>
-                        ) : (
-                          <span className="text-xs text-emerald-300 bg-emerald-900/40 border border-emerald-700/50 px-3 py-1 rounded-full font-bold">
-                            出店中: {organizationVendors.filter(v => registeredVendorIds.has(v.id)).length}件 / 名簿: {organizationVendors.filter(v => !registeredVendorIds.has(v.id)).length}件
-                          </span>
-                        )}
+                        <span className="text-xs text-emerald-300 bg-emerald-900/40 border border-emerald-700/50 px-3 py-1 rounded-full font-bold">
+                          {isAllEvent ? `登録団体名簿: ${organizationVendors.length}件` : `出店中: ${organizationVendors.length}件`}
+                        </span>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
@@ -729,7 +819,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                   </div>
                 )}
 
-                {/* 夜市全体選択時：一般店舗マスター一覧（エントリー分割せず名簿としてシンプルに表示） */}
+                {/* 夜市全体選択時：一般店舗マスター一覧（過去出店者マスター） */}
                 {isAllEvent && storeVendors.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -750,15 +840,15 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                   </div>
                 )}
 
-                {/* 個別イベント選択時：1. 今回のイベントに出店登録（エントリー済）の一般店舗 */}
-                {!isAllEvent && registeredStores.length > 0 && (
+                {/* 個別イベント選択時：このイベントに出店登録されている出店店舗 */}
+                {!isAllEvent && storeVendors.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-sky-500/60 inline-block" />
                         <h3 className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
                           <Store className="w-4 h-4 text-sky-400/80" />
-                          <span>過去出店者 ({registeredStores.length}件)</span>
+                          <span>出店店舗 ({storeVendors.length}件)</span>
                         </h3>
                       </div>
                       <span className="text-xs text-slate-400 bg-slate-850 border border-slate-800 px-2.5 py-0.5 rounded-full font-medium">
@@ -766,28 +856,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                       </span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {registeredStores.map(renderVendorCard)}
-                    </div>
-                  </div>
-                )}
-
-                {/* 個別イベント選択時：2. 名簿登録店舗・過去出店者（一般店舗・未登録） */}
-                {!isAllEvent && unregisteredStores.length > 0 && (
-                  <div className="space-y-3 pt-2">
-                    {(registeredStores.length > 0 || organizationVendors.length > 0) && (
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-slate-500 inline-block" />
-                          <h3 className="text-sm font-bold text-slate-300 flex items-center gap-1.5">
-                            <Users className="w-4 h-4 text-slate-400" />
-                            <span>過去出店者（未エントリー: {unregisteredStores.length}件）</span>
-                          </h3>
-                        </div>
-                        <span className="text-xs text-slate-400">過去出店者名簿・五十音順</span>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {unregisteredStores.map(renderVendorCard)}
+                      {storeVendors.map(renderVendorCard)}
                     </div>
                   </div>
                 )}
@@ -936,10 +1005,198 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
           onClose={() => setIsAddModalOpen(false)}
           onSave={(newVendor) => {
             onUpdateVendors([newVendor, ...vendors]);
+            if (!isAllEvent) {
+              handleAddVendorToEvent(newVendor);
+            }
             setIsAddModalOpen(false);
           }}
         />
       )}
+
+      {/* 過去出店者からこのイベントに出店エントリー追加モーダル */}
+      {isSelectPastVendorModalOpen && !isAllEvent && (
+        <SelectPastVendorModal
+          event={event}
+          vendors={vendors}
+          registeredVendorIds={registeredVendorIds}
+          onClose={() => setIsSelectPastVendorModalOpen(false)}
+          onSelectVendor={(vendor) => {
+            handleAddVendorToEvent(vendor);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+interface SelectPastVendorModalProps {
+  event: NightMarketEvent;
+  vendors: Vendor[];
+  registeredVendorIds: Set<string>;
+  onClose: () => void;
+  onSelectVendor: (vendor: Vendor) => void;
+}
+
+const SelectPastVendorModal: React.FC<SelectPastVendorModalProps> = ({
+  event,
+  vendors,
+  registeredVendorIds,
+  onClose,
+  onSelectVendor
+}) => {
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('ALL');
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+
+  // このイベントにまだ未エントリーの過去出店者
+  const unenteredVendors = useMemo(() => {
+    return vendors.filter((v) => !registeredVendorIds.has(v.id) && !addedIds.has(v.id));
+  }, [vendors, registeredVendorIds, addedIds]);
+
+  const filtered = useMemo(() => {
+    return unenteredVendors.filter((v) => {
+      const matchesSearch =
+        !search ||
+        v.name.toLowerCase().includes(search.toLowerCase()) ||
+        v.ownerName.toLowerCase().includes(search.toLowerCase()) ||
+        v.menuItems.toLowerCase().includes(search.toLowerCase());
+      const matchesCat = category === 'ALL' || v.category === category;
+      return matchesSearch && matchesCat;
+    });
+  }, [unenteredVendors, search, category]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-slate-900 border border-slate-750 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        {/* ヘッダー */}
+        <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              <UserPlus className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <span>過去出店者から「{event.name}」に追加</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                夜市全体のマスター名簿から選択して、このイベントの出店者としてエントリー登録します。
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* 検索・絞り込み */}
+        <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="屋号・代表者・品目で検索..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-slate-800/90 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+            />
+          </div>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="bg-slate-800 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-amber-500"
+          >
+            <option value="ALL">全ジャンル</option>
+            <option value="kitchen_car">キッチンカー</option>
+            <option value="food">飲食露店</option>
+            <option value="outdoor">屋外出店</option>
+          </select>
+        </div>
+
+        {/* 出店者リスト */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+          {filtered.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs">
+              {unenteredVendors.length === 0
+                ? 'すべての過去出店者がすでにこのイベントにエントリー済です。'
+                : '検索条件に一致する過去出店者が見つかりませんでした。'}
+            </div>
+          ) : (
+            filtered.map((vendor) => {
+              const isBanned = vendor.status === 'banned';
+              const isWarning = vendor.status === 'warning';
+              const isOrg = isVendorOrganization(vendor);
+
+              return (
+                <div
+                  key={vendor.id}
+                  className="p-3 rounded-xl bg-slate-800/60 border border-slate-750 hover:border-slate-650 flex items-center justify-between gap-3 transition"
+                >
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-bold text-white truncate">{vendor.name}</span>
+                      {isOrg ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800 font-medium">
+                          登録団体
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-700/60 text-slate-300">
+                          {getVendorCategoryLabel(vendor.category)}
+                        </span>
+                      )}
+                      {isBanned && (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 font-bold">
+                          出禁
+                        </span>
+                      )}
+                      {isWarning && (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-bold">
+                          要注意
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-400 flex items-center gap-3">
+                      {vendor.ownerName && <span>代表: {vendor.ownerName}</span>}
+                      {vendor.menuItems && <span className="truncate">品目: {vendor.menuItems}</span>}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      onSelectVendor(vendor);
+                      setAddedIds(prev => new Set([...prev, vendor.id]));
+                    }}
+                    className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${
+                      isBanned
+                        ? 'bg-red-900/60 hover:bg-red-800 text-red-200 border border-red-700'
+                        : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>このイベントに追加</span>
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* フッター */}
+        <div className="p-4 border-t border-slate-800 bg-slate-950/70 flex items-center justify-between text-xs">
+          <span className="text-slate-400">
+            選択可能な過去出店者: <strong className="text-white">{filtered.length}件</strong>
+            {addedIds.size > 0 && <span className="text-emerald-400 ml-2">（{addedIds.size}件を追加済）</span>}
+          </span>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-medium transition"
+          >
+            完了して閉じる
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
