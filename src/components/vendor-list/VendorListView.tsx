@@ -795,12 +795,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                         </div>
                         <div>
                           <h3 className="text-base font-bold text-white flex items-center gap-2">
-                            <span>{isAllEvent ? '登録団体一覧' : `出店団体 (${organizationVendors.length}件)`}</span>
-                            {isAllEvent && (
-                              <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 font-black">
-                                {organizationVendors.length}件
-                              </span>
-                            )}
+                            <span>{isAllEvent ? '登録団体一覧' : '出店団体'}</span>
                           </h3>
                           <p className="text-[11px] text-emerald-400/80 mt-0.5">
                             {isAllEvent ? '地域振興会・サークル・NPO等の公認登録団体名簿' : 'このイベントに出店エントリー済の公認登録団体'}
@@ -809,7 +804,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-emerald-300 bg-emerald-900/40 border border-emerald-700/50 px-3 py-1 rounded-full font-bold">
-                          {isAllEvent ? `登録団体名簿: ${organizationVendors.length}件` : `出店中: ${organizationVendors.length}件`}
+                          {isAllEvent ? '公認登録団体' : '出店中'}
                         </span>
                       </div>
                     </div>
@@ -827,7 +822,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                         <span className="w-2 h-2 rounded-full bg-amber-600/60 inline-block" />
                         <h3 className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
                           <Store className="w-4 h-4 text-amber-400/80" />
-                          <span>過去出店者 ({storeVendors.length}件)</span>
+                          <span>過去出店者</span>
                         </h3>
                       </div>
                       <span className="text-xs text-slate-400 bg-slate-850 border border-slate-800 px-2.5 py-0.5 rounded-full font-medium">
@@ -848,7 +843,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                         <span className="w-2 h-2 rounded-full bg-sky-500/60 inline-block" />
                         <h3 className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
                           <Store className="w-4 h-4 text-sky-400/80" />
-                          <span>出店店舗 ({storeVendors.length}件)</span>
+                          <span>出店店舗</span>
                         </h3>
                       </div>
                       <span className="text-xs text-slate-400 bg-slate-850 border border-slate-800 px-2.5 py-0.5 rounded-full font-medium">

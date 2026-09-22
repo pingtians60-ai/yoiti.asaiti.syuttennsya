@@ -450,9 +450,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   }`}
                 >
                   <span>🏮 {ev.name}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-black/30 text-slate-950' : 'bg-slate-700 text-slate-300'}`}>
-                    {isAll ? `(マスター名簿: ${vendors.length}件)` : `${ev.date} (${count}店舗)`}
-                  </span>
+                  {ev.date && !isAll && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-black/30 text-slate-950' : 'bg-slate-700 text-slate-300'}`}>
+                      {ev.date}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -712,9 +714,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <Users className="w-5 h-5 text-amber-400" />
               <h4 className="text-base sm:text-lg font-black text-white">
                 このイベントの出店者一覧
-                <span className="ml-2 text-xs font-normal text-slate-400">
-                  （全{currentEventEntries.length}店舗中 {filteredEntries.length}店舗表示）
-                </span>
               </h4>
             </div>
 
