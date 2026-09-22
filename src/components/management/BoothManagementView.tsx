@@ -623,6 +623,12 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
               });
             }
           }}
+          onRemoveEntry={(vendorToRemove) => {
+            const remaining = entries.filter((e) => e.vendorId !== vendorToRemove.id && e.vendorSnapshot?.id !== vendorToRemove.id);
+            onUpdateEntries(remaining);
+            setSelectedVendorForDetail(null);
+            setSelectedEntryForDetail(null);
+          }}
         />
       )}
 
@@ -1187,7 +1193,7 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
             </div>
 
             <p className="text-xs text-rose-300/90 leading-relaxed bg-rose-950/30 p-2.5 rounded-lg border border-rose-900/50">
-              ⚠️ 今回の夜市イベントからこの出店ブース情報を削除します。よろしいですか？
+              ⚠️ 今回のイベントからエントリーを解除し、【未エントリー（過去出店者）】側に戻します（出店者名簿からは削除されません）。よろしいですか？
             </p>
 
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -1202,7 +1208,7 @@ export const BoothManagementView: React.FC<BoothManagementViewProps> = ({
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-lg shadow-rose-600/30 transition flex items-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>完全に削除する</span>
+                <span>未エントリーに戻す</span>
               </button>
             </div>
           </div>

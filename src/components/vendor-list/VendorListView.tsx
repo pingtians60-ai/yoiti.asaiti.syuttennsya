@@ -28,6 +28,9 @@ import {
   Building2,
   Sparkles,
   UserPlus,
+  UserMinus,
+  UserCheck,
+  ArrowRightLeft,
   X,
   Check,
   Zap,
@@ -72,6 +75,7 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'store' | 'organization'>('ALL');
   const [kanaRow, setKanaRow] = useState<string>('ALL');
+  const [entryScopeTab, setEntryScopeTab] = useState<'entered' | 'unentered' | 'ALL'>('entered');
   const [selectedVendorForDetail, setSelectedVendorForDetail] = useState<Vendor | null>(null);
   const [detailInitialTab, setDetailInitialTab] = useState<'info' | 'fire' | 'permit'>('info');
   const [isMergingPdfs, setIsMergingPdfs] = useState(false);
@@ -86,7 +90,16 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
     return new Set(entries.map((e) => e.vendorId || e.vendorSnapshot?.id).filter(Boolean));
   }, [entries]);
 
-  // 過去出店者をこのイベントに追加する処理
+  // エントリー数・未エントリー数の集計
+  const registeredCount = useMemo(() => {
+    return vendors.filter((v) => registeredVendorIds.has(v.id)).length;
+  }, [vendors, registeredVendorIds]);
+
+  const unenteredCount = useMemo(() => {
+    return vendors.filter((v) => !registeredVendorIds.has(v.id)).length;
+  }, [vendors, registeredVendorIds]);
+
+  // 未エントリー（過去出店者）をこのイベントに出店エントリー側へ移す処理
   const handleAddVendorToEvent = (vendor: Vendor) => {
     if (vendor.status === 'banned') {
       const confirmBanned = window.confirm(
@@ -99,6 +112,10 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
       vendor.category === 'kitchen_car' ? 'KITCHEN_CAR' : 
       vendor.category === 'food' ? 'FOOD_STALL' : 'OUTDOOR';
 
+    const pFee = vendor.defaultPowerOption ? 1000 : 0;
+    const tCount = vendor.defaultTentCount ?? 1;
+    const tFee = (vendor.defaultTentOption ?? false) ? tCount * 2000 : 0;
+
     const newEntry: EventEntry = {
       id: `entry-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       eventId: event.id,
@@ -108,17 +125,17 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
       boothNumber: `${entries.length + 1}`,
       fee: {
         baseFee: 3000,
-        powerOption: false,
-        powerFee: 0,
-        powerWatts: 0,
-        tentOption: false,
-        tentCount: 0,
-        tentFee: 0,
+        powerOption: vendor.defaultPowerOption ?? false,
+        powerFee: pFee,
+        powerWatts: vendor.defaultPowerOption ? 1500 : 0,
+        tentOption: vendor.defaultTentOption ?? false,
+        tentCount: tCount,
+        tentFee: tFee,
         garbageOption: false,
         garbageFee: 0,
         equipmentRentalFee: 0,
         discount: 0,
-        totalAmount: 3000,
+        totalAmount: 3000 + pFee + tFee,
         paymentStatus: 'unbilled',
         receiptIssued: false
       },
@@ -143,6 +160,16 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
     };
 
     onUpdateEntries([...entries, newEntry]);
+  };
+
+  // エントリー側から未エントリー側へ戻す（エントリー解除）処理
+  const handleRemoveVendorFromEvent = (vendor: Vendor) => {
+    const confirmRemove = window.confirm(
+      `「${vendor.name}」を「${event.name}」の出店エントリーから解除し、【未エントリー】側に戻しますか？\n\n※過去出店者名簿からは削除されず、いつでも再エントリー可能です。`
+    );
+    if (!confirmRemove) return;
+    const remaining = entries.filter((e) => e.vendorId !== vendor.id && e.vendorSnapshot?.id !== vendor.id);
+    onUpdateEntries(remaining);
   };
 
   // フィルター & 五十音順（AI判定）ソート
@@ -182,18 +209,23 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
       return [...activeList, ...bannedList];
     }
 
-    // 個別イベント選択時：このイベントに出店登録（エントリー）されている店舗・団体のみ！
-    // 夜市全体の過去出店者マスターとは明確に分離
-    const eventVendors = result.filter((v) => registeredVendorIds.has(v.id));
+    // 個別イベント選択時：entryScopeTab に応じて「エントリー中」「未エントリー」「すべて」を切り替え
+    let targetVendors = result;
+    if (entryScopeTab === 'entered') {
+      targetVendors = result.filter((v) => registeredVendorIds.has(v.id));
+    } else if (entryScopeTab === 'unentered') {
+      targetVendors = result.filter((v) => !registeredVendorIds.has(v.id));
+    }
+
     const registeredList = sortVendorsByJapaneseAlphabet(
-      eventVendors.filter((v) => v.status !== 'banned')
+      targetVendors.filter((v) => v.status !== 'banned')
     );
     const bannedList = sortVendorsByJapaneseAlphabet(
-      eventVendors.filter((v) => v.status === 'banned')
+      targetVendors.filter((v) => v.status === 'banned')
     );
 
     return [...registeredList, ...bannedList];
-  }, [vendors, entries, searchTerm, statusFilter, categoryFilter, typeFilter, kanaRow, isAllEvent, registeredVendorIds]);
+  }, [vendors, entries, searchTerm, statusFilter, categoryFilter, typeFilter, kanaRow, isAllEvent, registeredVendorIds, entryScopeTab]);
 
   // グループ別リスト
   const organizationVendors = useMemo(
@@ -209,10 +241,13 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
     [filteredVendors]
   );
 
-  // カウント（夜市全体はマスター基準、個別イベントは当該イベント参加者基準）
+  // カウント（夜市全体はマスター基準、個別イベントは選択されたスコープ基準）
   const activeScopeVendors = useMemo(() => {
-    return isAllEvent ? vendors : vendors.filter((v) => registeredVendorIds.has(v.id));
-  }, [isAllEvent, vendors, registeredVendorIds]);
+    if (isAllEvent) return vendors;
+    if (entryScopeTab === 'entered') return vendors.filter((v) => registeredVendorIds.has(v.id));
+    if (entryScopeTab === 'unentered') return vendors.filter((v) => !registeredVendorIds.has(v.id));
+    return vendors;
+  }, [isAllEvent, vendors, registeredVendorIds, entryScopeTab]);
 
   const bannedCount = activeScopeVendors.filter((v) => v.status === 'banned').length;
   const warningCount = activeScopeVendors.filter((v) => v.status === 'warning').length;
@@ -442,6 +477,66 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* エントリー状況切り替えタブ（個別イベント選択時のみ表示） */}
+      {!isAllEvent && (
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-1 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setEntryScopeTab('entered')}
+              className={`flex-1 sm:flex-initial py-2 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 border ${
+                entryScopeTab === 'entered'
+                  ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400 shadow-md shadow-sky-900/40'
+                  : 'bg-slate-850 hover:bg-slate-800 text-slate-300 border-slate-750'
+              }`}
+            >
+              <UserCheck className="w-4 h-4 text-sky-300" />
+              <span>出店エントリー中</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+                entryScopeTab === 'entered' ? 'bg-black/30 text-white' : 'bg-slate-800 text-sky-400 border border-slate-700'
+              }`}>
+                {registeredCount}件
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setEntryScopeTab('unentered')}
+              className={`flex-1 sm:flex-initial py-2 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 border ${
+                entryScopeTab === 'unentered'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 border-amber-400 shadow-md shadow-amber-900/40'
+                  : 'bg-slate-850 hover:bg-slate-800 text-slate-300 border-slate-750'
+              }`}
+            >
+              <Users className="w-4 h-4 text-amber-400" />
+              <span>未エントリー（過去出店者）</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+                entryScopeTab === 'unentered' ? 'bg-black/30 text-slate-950' : 'bg-slate-800 text-amber-400 border border-slate-700'
+              }`}>
+                {unenteredCount}件
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setEntryScopeTab('ALL')}
+              className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 border ${
+                entryScopeTab === 'ALL'
+                  ? 'bg-slate-700 text-white border-slate-500 shadow-md'
+                  : 'bg-slate-850 hover:bg-slate-800 text-slate-400 border-slate-750'
+              }`}
+            >
+              <span>全て ({vendors.length})</span>
+            </button>
+          </div>
+
+          <div className="text-[11px] text-slate-400 px-1 flex items-center gap-1.5">
+            <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>各カードのボタンで未エントリー ⇄ エントリーへ自由に移動できます</span>
+          </div>
+        </div>
+      )}
 
       {/* 検索・ステータスフィルター */}
       <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
@@ -757,7 +852,38 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                       <span className="text-[10px] text-slate-500">クリックで詳細表示</span>
                     )}
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* エントリー ⇄ 未エントリー 移動ボタン（個別イベント時） */}
+                      {!isAllEvent && (
+                        isRegistered ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveVendorFromEvent(vendor);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 font-bold text-xs border border-rose-800/60 transition flex items-center gap-1 shadow-sm active:scale-95"
+                            title="このイベントのエントリーを解除し、未エントリーに戻します"
+                          >
+                            <UserMinus className="w-3.5 h-3.5 text-rose-400" />
+                            <span>未エントリーへ</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddVendorToEvent(vendor);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs transition flex items-center gap-1 shadow-md shadow-amber-500/20 active:scale-95"
+                            title="この出店者をエントリー側へ追加します"
+                          >
+                            <UserCheck className="w-3.5 h-3.5 text-slate-950" />
+                            <span>エントリーへ移す ➡️</span>
+                          </button>
+                        )
+                      )}
+
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -975,6 +1101,12 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
           onUpdateVendor={(updatedVendor) => {
             onUpdateVendors(vendors.map(v => v.id === updatedVendor.id ? updatedVendor : v));
             setSelectedVendorForDetail(updatedVendor);
+          }}
+          onAddEntry={(vendorToAdd) => {
+            handleAddVendorToEvent(vendorToAdd);
+          }}
+          onRemoveEntry={(vendorToRemove) => {
+            handleRemoveVendorFromEvent(vendorToRemove);
           }}
         />
       )}

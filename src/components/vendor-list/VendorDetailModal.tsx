@@ -35,7 +35,9 @@ import {
   Building2,
   Zap,
   Tent,
-  Minus
+  Minus,
+  UserCheck,
+  UserMinus
 } from 'lucide-react';
 import { Vendor, EventEntry, NightMarketEvent, FireApplianceType, SubmittedLicense, isVendorOrganization, getVendorCategoryLabel } from '../../types';
 import { Instagram, getInstagramUrl, getInstagramHandle } from '../../utils/instagram';
@@ -49,6 +51,8 @@ interface VendorDetailModalProps {
   onUpdateEntry?: (entry: EventEntry) => void;
   onUpdateVendor?: (vendor: Vendor) => void;
   initialTab?: 'info' | 'fire' | 'permit';
+  onAddEntry?: (vendor: Vendor) => void;
+  onRemoveEntry?: (vendor: Vendor) => void;
 }
 
 export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
@@ -59,7 +63,9 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
   onEdit,
   onUpdateEntry,
   onUpdateVendor,
-  initialTab = 'info'
+  initialTab = 'info',
+  onAddEntry,
+  onRemoveEntry
 }) => {
   const [activeTab, setActiveTab] = useState<'info' | 'fire' | 'permit'>(initialTab);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -691,6 +697,12 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
                   </span>
                 )}
 
+                {!entry && event.name !== '夜市全体' && event.id !== 'event-all' && (
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-800/90 text-slate-400 border border-slate-700 font-semibold">
+                    未エントリー
+                  </span>
+                )}
+
                 {/* 電源・テントの利用バッジ */}
                 {isPowerRented && (
                   <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-950/70 text-amber-300 border border-amber-800/60 font-semibold flex items-center gap-1">
@@ -751,8 +763,41 @@ export const VendorDetailModal: React.FC<VendorDetailModalProps> = ({
               </div>
             </div>
 
-            {/* 編集ボタン & 閉じるボタン */}
-            <div className="flex items-center gap-2 shrink-0">
+            {/* エントリー ⇄ 未エントリー 移動ボタン & 編集ボタン & 閉じるボタン */}
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {event.name !== '夜市全体' && event.id !== 'event-all' && (
+                entry ? (
+                  onRemoveEntry && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onRemoveEntry(vendor);
+                        onClose();
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 hover:text-rose-200 border border-rose-800/70 text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+                      title="このイベントのエントリーを解除し、未エントリーに戻します"
+                    >
+                      <UserMinus className="w-3.5 h-3.5" />
+                      <span>未エントリーに戻す</span>
+                    </button>
+                  )
+                ) : (
+                  onAddEntry && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onAddEntry(vendor);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-95"
+                      title="この出店者をこのイベントに出店エントリーします"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>エントリー側へ移す ➡️</span>
+                    </button>
+                  )
+                )
+              )}
+
               {onEdit && (
                 <button
                   type="button"
