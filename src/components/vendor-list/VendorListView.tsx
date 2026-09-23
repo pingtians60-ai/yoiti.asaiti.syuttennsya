@@ -27,6 +27,7 @@ import {
   ExternalLink,
   Building2,
   Sparkles,
+  Cloud,
   UserPlus,
   UserMinus,
   UserCheck,
@@ -53,6 +54,7 @@ interface VendorListViewProps {
   event: NightMarketEvent;
   entries: EventEntry[];
   onUpdateEntries: (entries: EventEntry[]) => void;
+  onOpenCloudSync?: () => void;
 }
 
 export const VendorListView: React.FC<VendorListViewProps> = ({
@@ -60,7 +62,8 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
   onUpdateVendors,
   event,
   entries,
-  onUpdateEntries
+  onUpdateEntries,
+  onOpenCloudSync
 }) => {
   const isAllEvent = 
     event.name === '夜市全体' || 
@@ -460,6 +463,17 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>過去出店者から追加</span>
+            </button>
+          )}
+
+          {onOpenCloudSync && (
+            <button
+              onClick={onOpenCloudSync}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/70 border border-emerald-700/80 text-emerald-300 text-xs font-bold transition shadow-sm"
+              title="クラウド・データベース同期設定を開く"
+            >
+              <Cloud className="w-4 h-4 text-emerald-400" />
+              <span>クラウド連携</span>
             </button>
           )}
 

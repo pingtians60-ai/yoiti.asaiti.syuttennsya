@@ -195,8 +195,8 @@ CREATE POLICY "Allow anon all on yoichi_entries" ON public.yoichi_entries FOR AL
   };
 
   return (
-    <>
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in flex flex-col max-h-[90vh] mx-auto">
+    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in flex flex-col max-h-[90vh]">
         {/* ヘッダー */}
         <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/90 sticky top-0 z-10">
           <div className="flex items-center gap-3">
@@ -446,6 +446,6 @@ CREATE POLICY "Allow anon all on yoichi_entries" ON public.yoichi_entries FOR AL
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 };

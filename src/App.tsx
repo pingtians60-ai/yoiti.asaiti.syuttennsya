@@ -6,7 +6,13 @@ import { CalendarView } from './components/calendar/CalendarView';
 import { BoothManagementView } from './components/management/BoothManagementView';
 import { VendorListView } from './components/vendor-list/VendorListView';
 import { SpreadsheetImportModal } from './components/common/SpreadsheetImportModal';
-import { SupabaseSyncModal } from './components/common/SupabaseSyncModal';
+import { CloudSyncModal } from './components/common/CloudSyncModal';
+import { 
+  getGasConfig, 
+  testGasConnection, 
+  upsertSingleVendorToGoogleSheets, 
+  deleteSingleVendorFromGoogleSheets 
+} from './services/googleSheetsDbService';
 
 import { NightMarketEvent, Vendor, EventEntry, isVendorOrganization } from './types';
 import { 
@@ -69,9 +75,14 @@ export function App() {
   const [vendors, setVendors] = useState<Vendor[]>(loadVendors);
   const [entries, setEntries] = useState<EventEntry[]>(loadEntries);
 
+  // クラウド連携モーダル（Supabase / Google Sheets共通）
+  const [isCloudSyncModalOpen, setIsCloudSyncModalOpen] = useState(false);
+
   // Supabaseクラウド連携ステート
-  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
+
+  // GoogleスプレッドシートDB連携ステート
+  const [isGoogleSheetsConnected, setIsGoogleSheetsConnected] = useState(false);
 
   console.log('[DEBUG-STATE] allEvents count:', allEvents.length, allEvents.map(e => ({ id: e.id, name: e.name, date: e.date })));
   console.log('[DEBUG-STATE] vendors count:', vendors.length, vendors.map(v => ({ id: v.id, name: v.name })));
@@ -144,6 +155,22 @@ export function App() {
         });
       }
     });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // GoogleスプレッドシートDB接続テスト
+  useEffect(() => {
+    let isMounted = true;
+    const config = getGasConfig();
+    if (config.url) {
+      testGasConnection(config.url).then((res) => {
+        if (isMounted) {
+          setIsGoogleSheetsConnected(res.success);
+        }
+      });
+    }
     return () => {
       isMounted = false;
     };
@@ -304,6 +331,18 @@ export function App() {
     const deletedVendors = vendors.filter((prev) => !updatedVendors.some((curr) => curr.id === prev.id));
     deletedVendors.forEach((v) => deleteVendorFromSupabase(v.id).catch(console.error));
 
+    // GoogleスプレッドシートDBへの自動同期
+    const { url: gasUrl, autoSync: gasAutoSync } = getGasConfig();
+    if (gasUrl && gasAutoSync) {
+      deletedVendors.forEach((v) => deleteSingleVendorFromGoogleSheets(v.id));
+      updatedVendors.forEach((v) => {
+        const prev = vendors.find((old) => old.id === v.id);
+        if (!prev || JSON.stringify(prev) !== JSON.stringify(v)) {
+          upsertSingleVendorToGoogleSheets(v);
+        }
+      });
+    }
+
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
     updatedVendors.forEach((v) => syncVendorToSupabase(v).catch(console.error));
@@ -324,6 +363,12 @@ export function App() {
       saveEntries(syncedEntries);
       return syncedEntries;
     });
+  };
+
+  // GoogleスプレッドシートDBからの出店者マスター読み込みハンドラー
+  const handleVendorsLoadedFromSheets = (loadedVendors: Vendor[]) => {
+    const normalized = normalizeVendors(loadedVendors);
+    handleUpdateVendors(normalized);
   };
 
   // 現在選択中イベントのエントリー更新
@@ -471,7 +516,8 @@ export function App() {
         onUpdateEvent={handleUpdateEvent}
         onImportData={handleImportData}
         onOpenSpreadsheetImport={() => setIsSpreadsheetModalOpen(true)}
-        onOpenSupabaseSync={() => setIsSupabaseModalOpen(true)}
+        onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
+        isGoogleSheetsConnected={isGoogleSheetsConnected}
         isSupabaseConnected={isSupabaseConnected}
         onNavigateToDashboard={() => {
           const allEvent = allEvents.find((e) => e.id === 'event-all' || e.name === '夜市全体') || allEvents[0];
@@ -575,6 +621,7 @@ export function App() {
             vendors={vendors}
             onUpdateEntries={handleUpdateCurrentEventEntries}
             onUpdateVendors={handleUpdateVendors}
+            onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
           />
         )}
       </main>
@@ -590,16 +637,23 @@ export function App() {
         />
       )}
 
-      {/* Supabase クラウド連携モーダル */}
-      <SupabaseSyncModal
-        isOpen={isSupabaseModalOpen}
-        onClose={() => setIsSupabaseModalOpen(false)}
+      {/* クラウド・データベース連携モーダル */}
+      <CloudSyncModal
+        isOpen={isCloudSyncModalOpen}
+        onClose={() => setIsCloudSyncModalOpen(false)}
         events={allEvents}
         vendors={vendors}
         entries={entries}
-        isConnected={isSupabaseConnected}
+        isSupabaseConnected={isSupabaseConnected}
         onRefreshDataFromCloud={handleRefreshDataFromCloud}
         onConnectionStatusChange={handleConnectionStatusChange}
+        onVendorsLoaded={handleVendorsLoadedFromSheets}
+        onSyncSuccess={() => {
+          const config = getGasConfig();
+          if (config.url) {
+            testGasConnection(config.url).then((res) => setIsGoogleSheetsConnected(res.success));
+          }
+        }}
       />
 
       {/* 管理者フッター */}
