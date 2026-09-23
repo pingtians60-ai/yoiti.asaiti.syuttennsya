@@ -11,7 +11,8 @@ import {
   getGasConfig, 
   testGasConnection, 
   upsertSingleVendorToGoogleSheets, 
-  deleteSingleVendorFromGoogleSheets 
+  deleteSingleVendorFromGoogleSheets,
+  fetchVendorsFromGoogleSheets
 } from './services/googleSheetsDbService';
 
 import { NightMarketEvent, Vendor, EventEntry, isVendorOrganization } from './types';
@@ -160,14 +161,28 @@ export function App() {
     };
   }, []);
 
-  // GoogleスプレッドシートDB接続テスト
+  // GoogleスプレッドシートDB接続テスト & 自動データ取得（起動時）
   useEffect(() => {
     let isMounted = true;
     const config = getGasConfig();
     if (config.url) {
       testGasConnection(config.url).then((res) => {
-        if (isMounted) {
-          setIsGoogleSheetsConnected(res.success);
+        if (!isMounted) return;
+        setIsGoogleSheetsConnected(res.success);
+        if (res.success) {
+          // 自動読み込み
+          fetchVendorsFromGoogleSheets(config.url).then((fetchRes) => {
+            if (!isMounted || !fetchRes.success || !fetchRes.vendors) return;
+            const loadedV = fetchRes.vendors;
+            const loadedE = loadEntries();
+            const deduped = deduplicateVendorsAndEntries(loadedV, loadedE);
+            setVendors(deduped.vendors);
+            saveVendors(deduped.vendors);
+            if (deduped.removedEntryCount > 0) {
+              setEntries(deduped.entries);
+              saveEntries(deduped.entries);
+            }
+          });
         }
       });
     }
