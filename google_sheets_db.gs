@@ -78,7 +78,7 @@ const EVENT_HEADERS = [
 ];
 
 function getOrCreateSheet(sheetName, headers) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById('1rTqByZIiqofRg0W-sXYjlzWVeBze3uYHVT_Y5PdBreo');
   let sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
@@ -109,7 +109,7 @@ function setupDatabase() {
   
   // もしデフォルトの「シート1」などが残っていれば削除（エラー回避のためtry-catch）
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById('1rTqByZIiqofRg0W-sXYjlzWVeBze3uYHVT_Y5PdBreo');
     const sheet1 = ss.getSheetByName('シート1');
     if (sheet1) ss.deleteSheet(sheet1);
   } catch(e) {}
