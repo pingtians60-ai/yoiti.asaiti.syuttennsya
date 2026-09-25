@@ -876,8 +876,6 @@ export function App() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>
             <span>yoiti・asaiti 出店者管理ポータル</span>
-            <span className="mx-2">|</span>
-            <span>Googleフォーム・スプレッドシート連携対応</span>
           </div>
           <div className="text-[11px] text-slate-400">
             © 2026 yoiti・asaiti
