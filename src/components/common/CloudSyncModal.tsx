@@ -14,6 +14,7 @@ interface CloudSyncModalProps {
   onRefreshDataFromCloud: () => Promise<void>;
   onConnectionStatusChange: () => void;
   onVendorsLoaded: (vendors: Vendor[]) => void;
+  onEventsLoaded?: (events: NightMarketEvent[]) => void;
   onSyncSuccess?: () => void;
 }
 
@@ -27,6 +28,7 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
   onRefreshDataFromCloud,
   onConnectionStatusChange,
   onVendorsLoaded,
+  onEventsLoaded,
   onSyncSuccess
 }) => {
   const [activeTab, setActiveTab] = useState<'supabase' | 'sheets'>('sheets');
@@ -95,6 +97,8 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
               onClose={onClose}
               vendors={vendors}
               onVendorsLoaded={onVendorsLoaded}
+              events={events}
+              onEventsLoaded={onEventsLoaded}
               onSyncSuccess={onSyncSuccess}
             />
           </div>

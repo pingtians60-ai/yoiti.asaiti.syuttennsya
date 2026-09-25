@@ -363,7 +363,7 @@ export function parseSpreadsheetCsv(csvText: string): Vendor[] {
       statusReason,
       tags: ['スプレッドシート移行'],
       internalNotes: note,
-      pastParticipationCount: 1,
+
       pastEvents: ['過去の夜市'],
       createdAt: new Date().toISOString().split('T')[0]
     });

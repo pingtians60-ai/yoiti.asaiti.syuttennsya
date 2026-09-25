@@ -16,15 +16,20 @@ import {
   Database,
   ArrowRight,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Calendar as CalendarIcon
 } from 'lucide-react';
-import { Vendor } from '../../types';
+import { Vendor, NightMarketEvent } from '../../types';
 import {
   getGasConfig,
   saveGasConfig,
   testGasConnection,
   fetchVendorsFromGoogleSheets,
   pushVendorsToGoogleSheets,
+  fetchEventsFromGoogleSheets,
+  pushEventsToGoogleSheets,
+  fetchEntriesFromGoogleSheets,
+  pushEntriesToGoogleSheets,
   GOOGLE_APPS_SCRIPT_TEMPLATE
 } from '../../services/googleSheetsDbService';
 
@@ -33,6 +38,10 @@ interface GoogleSheetsSyncModalProps {
   onClose: () => void;
   vendors: Vendor[];
   onVendorsLoaded: (vendors: Vendor[]) => void;
+  events?: NightMarketEvent[];
+  onEventsLoaded?: (events: NightMarketEvent[]) => void;
+  entries?: import('../../types').EventEntry[];
+  onEntriesLoaded?: (entries: import('../../types').EventEntry[]) => void;
   onSyncSuccess?: () => void;
 }
 
@@ -41,6 +50,10 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
   onClose,
   vendors,
   onVendorsLoaded,
+  events = [],
+  onEventsLoaded,
+  entries = [],
+  onEntriesLoaded,
   onSyncSuccess
 }) => {
   const [activeTab, setActiveTab] = useState<'sync' | 'guide'>('sync');
@@ -53,6 +66,10 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
 
   const [isPulling, setIsPulling] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
+  const [isPullingEvents, setIsPullingEvents] = useState(false);
+  const [isPushingEvents, setIsPushingEvents] = useState(false);
+  const [isPullingEntries, setIsPullingEntries] = useState(false);
+  const [isPushingEntries, setIsPushingEntries] = useState(false);
   const [actionResult, setActionResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const [copiedCode, setCopiedCode] = useState(false);
@@ -161,6 +178,141 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
       setActionResult({
         success: false,
         message: res.message || 'スプレッドシートへの保存に失敗しました。'
+      });
+    }
+  };
+
+  // イベント管理シートから読み込み（プル）
+  const handlePullEventsFromSheets = async () => {
+    if (!url.trim()) {
+      setActionResult({ success: false, message: '先にWebアプリURLを入力・保存してください。' });
+      return;
+    }
+
+    if (!onEventsLoaded) return;
+
+    const confirmMsg = events.length > 0
+      ? `スプレッドシートの「イベント管理」シートから予定を読み込みます。\n現在の端末上の予定（${events.length}件）はスプレッドシートのデータで最新化されます。よろしいですか？`
+      : 'スプレッドシートの「イベント管理」シートから予定を読み込みます。よろしいですか？';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsPullingEvents(true);
+    setActionResult(null);
+
+    const res = await fetchEventsFromGoogleSheets(url);
+    setIsPullingEvents(false);
+
+    if (res.success && res.events) {
+      onEventsLoaded(res.events);
+      setLastSyncTime(new Date().toISOString());
+      setActionResult({
+        success: true,
+        message: `スプレッドシートの「イベント管理」シートから ${res.events.length}件の予定を正常に読み込みました！`
+      });
+      onSyncSuccess?.();
+    } else {
+      setActionResult({
+        success: false,
+        message: res.message || 'スプレッドシートからのイベント読み込みに失敗しました。'
+      });
+    }
+  };
+
+  // イベント管理シートへ保存（プッシュ）
+  const handlePushEventsToSheets = async () => {
+    if (!url.trim()) {
+      setActionResult({ success: false, message: '先にWebアプリURLを入力・保存してください。' });
+      return;
+    }
+
+    const confirmMsg = `サイトのカレンダーに登録されている全予定（${events.length}件）をGoogleスプレッドシートの「イベント管理」シートに保存（上書き）します。\n実行しますか？`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsPushingEvents(true);
+    setActionResult(null);
+
+    const res = await pushEventsToGoogleSheets(events, url);
+    setIsPushingEvents(false);
+
+    if (res.success) {
+      setLastSyncTime(new Date().toISOString());
+      setActionResult({
+        success: true,
+        message: res.message || 'スプレッドシートの「イベント管理」シートへ全予定を正常に保存しました！'
+      });
+      onSyncSuccess?.();
+    } else {
+      setActionResult({
+        success: false,
+        message: res.message || 'スプレッドシートへのイベント保存に失敗しました。'
+      });
+    }
+  };
+
+  // 出店記録（エントリー）から読み込み（プル）
+  const handlePullEntriesFromSheets = async () => {
+    if (!url.trim()) {
+      setActionResult({ success: false, message: '先にWebアプリURLを入力・保存してください。' });
+      return;
+    }
+    if (!onEntriesLoaded) return;
+
+    const confirmMsg = entries.length > 0
+      ? `スプレッドシートの「出店記録」シートから記録を読み込みます。\n現在の端末上の記録（${entries.length}件）はスプレッドシートのデータで最新化されます。よろしいですか？`
+      : 'スプレッドシートの「出店記録」シートから記録を読み込みます。よろしいですか？';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsPullingEntries(true);
+    setActionResult(null);
+
+    const res = await fetchEntriesFromGoogleSheets(url);
+    setIsPullingEntries(false);
+
+    if (res.success && res.entries) {
+      onEntriesLoaded(res.entries);
+      setLastSyncTime(new Date().toISOString());
+      setActionResult({
+        success: true,
+        message: `スプレッドシートの「出店記録」シートから ${res.entries.length}件の記録を正常に読み込みました！`
+      });
+      onSyncSuccess?.();
+    } else {
+      setActionResult({
+        success: false,
+        message: res.message || 'スプレッドシートからの記録読み込みに失敗しました。'
+      });
+    }
+  };
+
+  // 出店記録（エントリー）シートへ保存（プッシュ）
+  const handlePushEntriesToSheets = async () => {
+    if (!url.trim()) {
+      setActionResult({ success: false, message: '先にWebアプリURLを入力・保存してください。' });
+      return;
+    }
+
+    const confirmMsg = `アプリ内の全出店記録（${entries.length}件）をGoogleスプレッドシートの「出店記録」シートに保存（上書き）します。\n実行しますか？`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsPushingEntries(true);
+    setActionResult(null);
+
+    const res = await pushEntriesToGoogleSheets(entries, url);
+    setIsPushingEntries(false);
+
+    if (res.success) {
+      setLastSyncTime(new Date().toISOString());
+      setActionResult({
+        success: true,
+        message: res.message || 'スプレッドシートの「出店記録」シートへ全出店記録を正常に保存しました！'
+      });
+      onSyncSuccess?.();
+    } else {
+      setActionResult({
+        success: false,
+        message: res.message || 'スプレッドシートへの出店記録保存に失敗しました。'
       });
     }
   };
@@ -375,6 +527,120 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
                     <UploadCloud className={`w-4 h-4 ${isPushing ? 'animate-bounce' : ''}`} />
                     <span>{isPushing ? '保存中...' : 'シートへ全データを保存'}</span>
                   </button>
+                </div>
+              </div>
+
+              {/* イベント管理・カレンダー予定の同期 */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <CalendarIcon className="w-4 h-4 text-amber-400" />
+                    <span>イベント管理シート（カレンダー予定）同期</span>
+                  </h4>
+                  <span className="text-[11px] text-slate-400">
+                    現在のアプリ内予定: <strong className="text-white font-bold">{events.length}件</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* イベント管理シートから読み込み */}
+                  <div className="p-4 rounded-2xl bg-slate-850/80 border border-slate-700/80 flex flex-col justify-between space-y-3 hover:border-slate-600 transition">
+                    <div>
+                      <h5 className="text-xs font-bold text-white flex items-center gap-1.5 mb-1">
+                        <DownloadCloud className="w-4 h-4 text-amber-400" />
+                        シートから予定を読み込む
+                      </h5>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        スプレッドシートの「イベント管理」シートから予定をアプリのカレンダーへ同期します。
+                      </p>
+                    </div>
+                    <button
+                      onClick={handlePullEventsFromSheets}
+                      disabled={isPullingEvents || isPushingEvents || !url.trim() || !onEventsLoaded}
+                      className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-amber-300 font-bold text-xs border border-amber-500/30 transition"
+                    >
+                      <DownloadCloud className={`w-3.5 h-3.5 ${isPullingEvents ? 'animate-bounce' : ''}`} />
+                      <span>{isPullingEvents ? '読み込み中...' : '「イベント管理」から予定を取得'}</span>
+                    </button>
+                  </div>
+
+                  {/* イベント管理シートへ保存 */}
+                  <div className="p-4 rounded-2xl bg-slate-850/80 border border-slate-700/80 flex flex-col justify-between space-y-3 hover:border-slate-600 transition">
+                    <div>
+                      <h5 className="text-xs font-bold text-white flex items-center gap-1.5 mb-1">
+                        <UploadCloud className="w-4 h-4 text-amber-400" />
+                        シートへ予定を一括保存
+                      </h5>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        カレンダーの全予定（{events.length}件）をスプレッドシートの「イベント管理」シートに保存します。
+                      </p>
+                    </div>
+                    <button
+                      onClick={handlePushEventsToSheets}
+                      disabled={isPullingEvents || isPushingEvents || !url.trim()}
+                      className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition"
+                    >
+                      <UploadCloud className={`w-3.5 h-3.5 ${isPushingEvents ? 'animate-bounce' : ''}`} />
+                      <span>{isPushingEvents ? '保存中...' : '「イベント管理」へ全予定を保存'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ===== セクション3: 出店記録 ===== */}
+              <div className="mb-8 pb-8 border-b border-slate-800/60">
+                <div className="flex items-end justify-between mb-4">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Database className="w-4 h-4 text-emerald-400" />
+                    <span>出店記録シート（エントリー）同期</span>
+                  </h4>
+                  <span className="text-[11px] text-slate-400">
+                    現在のアプリ内記録: <strong className="text-white font-bold">{entries.length}件</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* 出店記録シートから読み込み */}
+                  <div className="p-4 rounded-2xl bg-slate-850/80 border border-slate-700/80 flex flex-col justify-between space-y-3 hover:border-slate-600 transition">
+                    <div>
+                      <h5 className="text-xs font-bold text-white flex items-center gap-1.5 mb-1">
+                        <DownloadCloud className="w-4 h-4 text-emerald-400" />
+                        シートから出店記録を読み込む
+                      </h5>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        スプレッドシートの「出店記録」シートからエントリー情報をアプリへ同期します。
+                      </p>
+                    </div>
+                    <button
+                      onClick={handlePullEntriesFromSheets}
+                      disabled={isPullingEntries || isPushingEntries || !url.trim() || !onEntriesLoaded}
+                      className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-emerald-300 font-bold text-xs border border-emerald-500/30 transition"
+                    >
+                      <DownloadCloud className={`w-3.5 h-3.5 ${isPullingEntries ? 'animate-bounce' : ''}`} />
+                      <span>{isPullingEntries ? '読み込み中...' : '「出店記録」から取得'}</span>
+                    </button>
+                  </div>
+
+                  {/* 出店記録シートへ保存 */}
+                  <div className="p-4 rounded-2xl bg-slate-850/80 border border-slate-700/80 flex flex-col justify-between space-y-3 hover:border-slate-600 transition">
+                    <div>
+                      <h5 className="text-xs font-bold text-white flex items-center gap-1.5 mb-1">
+                        <UploadCloud className="w-4 h-4 text-emerald-400" />
+                        シートへ出店記録を一括保存
+                      </h5>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        アプリ内の全出店記録（{entries.length}件）をスプレッドシートの「出店記録」シートに保存します。
+                      </p>
+                    </div>
+                    <button
+                      onClick={handlePushEntriesToSheets}
+                      disabled={isPullingEntries || isPushingEntries || !url.trim()}
+                      className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition"
+                    >
+                      <UploadCloud className={`w-3.5 h-3.5 ${isPushingEntries ? 'animate-bounce' : ''}`} />
+                      <span>{isPushingEntries ? '保存中...' : '「出店記録」へ全記録を保存'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 

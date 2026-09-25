@@ -427,9 +427,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* 下部コンテンツエリア */}
       {isAllEvent ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col gap-6">
           {/* 過去の全出店者・登録団体一覧 */}
-          <div className="lg:col-span-2 bg-slate-900/70 border border-slate-800 rounded-2xl p-6 shadow-lg">
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 shadow-lg">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
               <div className="flex items-center gap-3 flex-wrap">
                 <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
@@ -546,74 +546,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   まだ出店者が登録されていません。上部の「スプレッドシート連携」等から取り込めます。
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* 右側クイックアクション */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 shadow-lg flex flex-col justify-between">
-            <div>
-              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2 mb-4">
-                <Zap className="w-4 h-4 text-amber-400" />
-                夜市全体の管理メニュー
-              </h3>
-
-              <div className="space-y-3">
-                <button
-                  onClick={() => setActiveTab('vendor-list')}
-                  className="w-full text-left p-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700 hover:border-amber-500/60 transition group flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-slate-950 transition">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-200 group-hover:text-white">出店者名簿・出禁リスト</div>
-                      <div className="text-xs text-slate-400">過去の全出店者を検索・新規追加・編集</div>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-400 group-hover:translate-x-1 transition" />
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('calendar')}
-                  className="w-full text-left p-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700 hover:border-sky-500/60 transition group flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400 group-hover:bg-sky-500 group-hover:text-slate-950 transition">
-                      <CalendarIcon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-200 group-hover:text-white">イベント・カレンダー</div>
-                      <div className="text-xs text-slate-400">各回の開催日を確認・新規作成・切替</div>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-sky-400 group-hover:translate-x-1 transition" />
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('fire')}
-                  className="w-full text-left p-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700 hover:border-orange-500/60 transition group flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400 group-hover:bg-orange-500 group-hover:text-slate-950 transition">
-                      <Flame className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-200 group-hover:text-white">消防安全・器具管理</div>
-                      <div className="text-xs text-slate-400">火気器具・消火器の安全確認状況</div>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-orange-400 group-hover:translate-x-1 transition" />
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-6 p-4 rounded-xl bg-slate-800/30 border border-slate-800 text-xs text-slate-400">
-              <div className="font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                自動バックアップ有効
-              </div>
-              全データはブラウザのローカル環境に自動保存されています。
             </div>
           </div>
         </div>

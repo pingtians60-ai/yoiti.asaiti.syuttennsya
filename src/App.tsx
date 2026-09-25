@@ -6,14 +6,24 @@ import { CalendarView } from './components/calendar/CalendarView';
 import { BoothManagementView } from './components/management/BoothManagementView';
 import { VendorListView } from './components/vendor-list/VendorListView';
 import { SpreadsheetImportModal } from './components/common/SpreadsheetImportModal';
-import { CloudSyncModal } from './components/common/CloudSyncModal';
+import { GoogleSheetsSyncModal } from './components/common/GoogleSheetsSyncModal';
 import { 
   getGasConfig, 
   testGasConnection, 
   upsertSingleVendorToGoogleSheets, 
   deleteSingleVendorFromGoogleSheets,
-  fetchVendorsFromGoogleSheets
+  fetchVendorsFromGoogleSheets,
+  fetchEntriesFromGoogleSheets,
+  upsertSingleEntryToGoogleSheets,
+  deleteSingleEntryFromGoogleSheets,
+  fetchEventsFromGoogleSheets,
+  pushEventsToGoogleSheets,
+  upsertSingleEventToGoogleSheets,
+  deleteSingleEventFromGoogleSheets,
+  pushVendorsToGoogleSheets,
+  pushEntriesToGoogleSheets
 } from './services/googleSheetsDbService';
+import { CheckCircle2, AlertTriangle, Info as InfoIcon, X as XIcon } from 'lucide-react';
 
 import { NightMarketEvent, Vendor, EventEntry, isVendorOrganization } from './types';
 import { 
@@ -84,6 +94,19 @@ export function App() {
 
   // GoogleスプレッドシートDB連携ステート
   const [isGoogleSheetsConnected, setIsGoogleSheetsConnected] = useState(false);
+
+  // トースト通知ステート
+  const [toast, setToast] = useState<{ id: string; message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  // 初期ロード状態
+  const [isInitializing, setIsInitializing] = useState(true);
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = String(Date.now());
+    setToast({ id, message, type });
+    setTimeout(() => {
+      setToast((current) => (current && current.id === id ? null : current));
+    }, 4500);
+  };
 
   console.log('[DEBUG-STATE] allEvents count:', allEvents.length, allEvents.map(e => ({ id: e.id, name: e.name, date: e.date })));
   console.log('[DEBUG-STATE] vendors count:', vendors.length, vendors.map(v => ({ id: v.id, name: v.name })));
@@ -171,23 +194,48 @@ export function App() {
         setIsGoogleSheetsConnected(res.success);
         if (res.success) {
           // 自動読み込み
-          fetchVendorsFromGoogleSheets(config.url).then((fetchRes) => {
-            if (!isMounted || !fetchRes.success || !fetchRes.vendors) return;
-            const loadedV = fetchRes.vendors;
-            const loadedE = loadEntries();
+          Promise.all([
+            fetchVendorsFromGoogleSheets(config.url),
+            fetchEntriesFromGoogleSheets(config.url), // 追加: 出店記録もGASから取得
+            fetchEventsFromGoogleSheets(config.url) // 追加: イベントもGASから取得
+          ]).then(([fetchVRes, fetchERes, fetchEvRes]) => {
+            if (!isMounted) return;
+            
+            if (fetchEvRes.success && fetchEvRes.events && fetchEvRes.events.length > 0) {
+              setAllEvents(fetchEvRes.events);
+              saveAllEvents(fetchEvRes.events);
+              setSelectedEventId((prev) => {
+                if (fetchEvRes.events!.some((e) => e.id === prev)) return prev;
+                return fetchEvRes.events![0]?.id || prev;
+              });
+            }
+
+            const loadedV = (fetchVRes.success && fetchVRes.vendors) ? fetchVRes.vendors : loadVendors();
+            const loadedE = (fetchERes.success && fetchERes.entries) ? fetchERes.entries : loadEntries();
+            
             const deduped = deduplicateVendorsAndEntries(loadedV, loadedE);
             setVendors(deduped.vendors);
             saveVendors(deduped.vendors);
-            if (deduped.removedEntryCount > 0) {
-              setEntries(deduped.entries);
-              saveEntries(deduped.entries);
-            }
+            setEntries(deduped.entries);
+            saveEntries(deduped.entries);
+            setIsInitializing(false);
           });
+        } else {
+          setIsInitializing(false);
         }
       });
+    } else {
+      setIsInitializing(false);
     }
+    
+    // セーフティ：最大5秒で強制的にローディング解除
+    const timer = setTimeout(() => {
+      if (isMounted) setIsInitializing(false);
+    }, 5000);
+
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
   }, []);
 
@@ -280,8 +328,8 @@ export function App() {
     }
   };
 
-  // 新規イベント作成
-  const handleCreateEvent = (newEvent: NightMarketEvent) => {
+  // 新規イベント作成（カレンダー・イベント管理）
+  const handleCreateEvent = async (newEvent: NightMarketEvent) => {
     const updated = [...allEvents, newEvent];
     setAllEvents(updated);
     saveAllEvents(updated);
@@ -289,20 +337,55 @@ export function App() {
     saveSelectedEventId(newEvent.id);
     saveEvent(newEvent);
     syncEventToSupabase(newEvent).catch(console.error);
+
+    // Googleスプレッドシートの「イベント管理」シートへ自動反映
+    try {
+      const res = await upsertSingleEventToGoogleSheets(newEvent);
+      if (res.success) {
+        showToast(res.message, 'success');
+      } else if (res.notConfigured) {
+        showToast(`「${newEvent.name}」を作成しました（スプレッドシート連携を設定するとシートに自動記入されます）`, 'info');
+      } else {
+        showToast(res.message, 'info');
+      }
+    } catch (e: any) {
+      console.warn('Google Sheets event auto-upsert failed:', e);
+    }
   };
 
-  // イベント情報更新
-  const handleUpdateEvent = (updated: NightMarketEvent) => {
+  // イベント情報更新（カレンダー・イベント管理）
+  const handleUpdateEvent = async (updated: NightMarketEvent) => {
     const updatedList = allEvents.map((e) => (e.id === updated.id ? updated : e));
     setAllEvents(updatedList);
     saveAllEvents(updatedList);
     saveEvent(updated);
     syncEventToSupabase(updated).catch(console.error);
+
+    // Googleスプレッドシートの「イベント管理」シートへ自動更新
+    try {
+      const res = await upsertSingleEventToGoogleSheets(updated);
+      if (res.success) {
+        showToast(res.message, 'success');
+      } else if (res.notConfigured) {
+        showToast(`「${updated.name}」の予定を更新しました`, 'success');
+      }
+    } catch (e: any) {
+      console.warn('Google Sheets event update failed:', e);
+    }
   };
 
-  // イベント削除
-  const handleDeleteEvent = (eventId: string) => {
+  // イベント削除（カレンダー・イベント管理）
+  const handleDeleteEvent = async (eventId: string) => {
     deleteEventFromSupabase(eventId).catch(console.error);
+    try {
+      const res = await deleteSingleEventFromGoogleSheets(eventId);
+      if (res.success) {
+        showToast(res.message, 'success');
+      }
+    } catch (e) {
+      console.warn('Google Sheets event delete failed:', e);
+    }
+
     if (allEvents.length <= 1) {
       // 最後の1件を削除した場合は、初期状態の空イベントにリセット
       const resetEvent: NightMarketEvent = {
@@ -318,6 +401,7 @@ export function App() {
       saveSelectedEventId(resetEvent.id);
       saveEvent(resetEvent);
       syncEventToSupabase(resetEvent).catch(console.error);
+      upsertSingleEventToGoogleSheets(resetEvent).catch(console.error);
 
       // このイベントのエントリーも削除
       const updatedEntries = entries.filter((e) => e.eventId !== eventId);
@@ -341,14 +425,27 @@ export function App() {
     saveEvent(nextEvent);
   };
 
-  const handleUpdateVendors = (updatedVendors: Vendor[]) => {
+  // Googleスプレッドシートの「イベント管理」シートから読み込んだイベントを反映
+  const handleEventsLoadedFromSheets = (loadedEvents: NightMarketEvent[]) => {
+    if (!loadedEvents || loadedEvents.length === 0) return;
+    setAllEvents(loadedEvents);
+    saveAllEvents(loadedEvents);
+    if (!loadedEvents.some((e) => e.id === selectedEventId)) {
+      setSelectedEventId(loadedEvents[0].id);
+      saveSelectedEventId(loadedEvents[0].id);
+      saveEvent(loadedEvents[0]);
+    }
+    showToast(`Googleスプレッドシートの「イベント管理」シートから ${loadedEvents.length}件の予定を読み込みました！`, 'success');
+  };
+
+  const handleUpdateVendors = (updatedVendors: Vendor[], skipAutoSync = false) => {
     // 削除された出店者をSupabaseからも削除
     const deletedVendors = vendors.filter((prev) => !updatedVendors.some((curr) => curr.id === prev.id));
     deletedVendors.forEach((v) => deleteVendorFromSupabase(v.id).catch(console.error));
 
     // GoogleスプレッドシートDBへの自動同期
     const { url: gasUrl, autoSync: gasAutoSync } = getGasConfig();
-    if (gasUrl && gasAutoSync) {
+    if (!skipAutoSync && gasUrl && gasAutoSync) {
       deletedVendors.forEach((v) => deleteSingleVendorFromGoogleSheets(v.id));
       updatedVendors.forEach((v) => {
         const prev = vendors.find((old) => old.id === v.id);
@@ -387,7 +484,7 @@ export function App() {
   };
 
   // 現在選択中イベントのエントリー更新
-  const handleUpdateCurrentEventEntries = (updatedForCurrentEvent: EventEntry[]) => {
+  const handleUpdateCurrentEventEntries = (updatedForCurrentEvent: EventEntry[], skipAutoSync = false) => {
     // 夜市全体（isAllEvent）はエントリーを持たないため、エントリー更新は行わない
     if (isAllEvent) return;
 
@@ -395,7 +492,12 @@ export function App() {
     const deletedEntries = currentEventEntries.filter(
       (prev) => !updatedForCurrentEvent.some((curr) => curr.id === prev.id)
     );
-    deletedEntries.forEach((e) => deleteEntryFromSupabase(e.id).catch(console.error));
+    deletedEntries.forEach((e) => {
+      deleteEntryFromSupabase(e.id).catch(console.error);
+      if (!skipAutoSync) {
+        deleteSingleEntryFromGoogleSheets(e.id).catch(console.error);
+      }
+    });
 
     setEntries((prevEntries) => {
       const otherEntries = prevEntries.filter(
@@ -408,20 +510,37 @@ export function App() {
       const newAllEntries = [...otherEntries, ...standardized];
 
       saveEntries(newAllEntries);
-      standardized.forEach((e) => syncEntryToSupabase(e).catch(console.error));
+      // 変更があったエントリーのみ同期する
+      const changedEntries = standardized.filter((e) => {
+        const prev = currentEventEntries.find((old) => old.id === e.id);
+        return !prev || JSON.stringify(prev) !== JSON.stringify(e);
+      });
+
+      changedEntries.forEach((e) => {
+        syncEntryToSupabase(e).catch(console.error);
+        if (!skipAutoSync) {
+          upsertSingleEntryToGoogleSheets(e).catch(console.error);
+        }
+      });
 
       // entries側で出店者情報（屋号、代表者、電話等）が編集・変更された場合、vendors名簿マスター側も自動同期
       setVendors((prevVendors) => {
+        const { url: gasUrl, autoSync: gasAutoSync } = getGasConfig();
         const updatedVendors = prevVendors.map((v) => {
           const matchingEntry = updatedForCurrentEvent.find(
             (e) => e.vendorId === v.id || e.vendorSnapshot?.id === v.id
           );
           if (matchingEntry && matchingEntry.vendorSnapshot) {
-            return {
+            const updatedVendor = {
               ...v,
               ...matchingEntry.vendorSnapshot,
               id: v.id
             };
+            // もし内容が変わっていればGASにも同期
+            if (!skipAutoSync && JSON.stringify(v) !== JSON.stringify(updatedVendor) && gasUrl && gasAutoSync) {
+              upsertSingleVendorToGoogleSheets(updatedVendor);
+            }
+            return updatedVendor;
           }
           return v;
         });
@@ -439,11 +558,24 @@ export function App() {
     const deletedEntries = entries.filter(
       (prev) => !newAllEntries.some((curr) => curr.id === prev.id)
     );
-    deletedEntries.forEach((e) => deleteEntryFromSupabase(e.id).catch(console.error));
+    deletedEntries.forEach((e) => {
+      deleteEntryFromSupabase(e.id).catch(console.error);
+      deleteSingleEntryFromGoogleSheets(e.id).catch(console.error);
+    });
 
     setEntries(newAllEntries);
     saveEntries(newAllEntries);
-    newAllEntries.forEach((e) => syncEntryToSupabase(e).catch(console.error));
+    
+    // 変更があったエントリーのみ同期する
+    const changedEntries = newAllEntries.filter((e) => {
+      const prev = entries.find((old) => old.id === e.id);
+      return !prev || JSON.stringify(prev) !== JSON.stringify(e);
+    });
+
+    changedEntries.forEach((e) => {
+      syncEntryToSupabase(e).catch(console.error);
+      upsertSingleEntryToGoogleSheets(e).catch(console.error);
+    });
   };
 
   // 全消去（空にして新規スタート）
@@ -483,13 +615,13 @@ export function App() {
   };
 
   // スプレッドシートからの自動取り込み＆一括反映（現在選択中のイベントへ紐付け）
-  const handleSpreadsheetImport = (importedVendors: Vendor[], importedEntries: EventEntry[], count: number) => {
+  const handleSpreadsheetImport = async (importedVendors: Vendor[], importedEntries: EventEntry[], count: number) => {
     const deduped = deduplicateVendorsAndEntries(importedVendors, importedEntries);
-    handleUpdateVendors(deduped.vendors);
+    handleUpdateVendors(deduped.vendors, true); // 個別の自動同期をスキップ
 
     // 現在選択中のイベントIDを付与して反映
     const entriesWithEventId = deduped.entries.map((e) => ({ ...e, eventId: event.id }));
-    handleUpdateCurrentEventEntries(entriesWithEventId);
+    handleUpdateCurrentEventEntries(entriesWithEventId, true); // 個別の自動同期をスキップ
 
     // Supabaseにも反映
     deduped.vendors.forEach((v) => syncVendorToSupabase(v).catch(console.error));
@@ -499,6 +631,25 @@ export function App() {
     if (deduped.removedVendorCount > 0) {
       msg += `\n※ 重複していた出店者 ${deduped.removedVendorCount}件 の被りを自動削除・統合しました。`;
     }
+
+    // まとめてGoogleスプレッドシートへ上書きプッシュ（一括更新）
+    const { url: gasUrl, autoSync: gasAutoSync } = getGasConfig();
+    if (gasUrl && gasAutoSync) {
+      msg += '\n\nクラウド同期処理を実行中...';
+      try {
+        await pushVendorsToGoogleSheets(deduped.vendors, gasUrl);
+        // 今回のイベントだけでなく、全エントリーをまとめて送信する
+        const allEntriesNow = [
+          ...entries.filter(e => e.eventId !== event.id),
+          ...entriesWithEventId
+        ];
+        await pushEntriesToGoogleSheets(allEntriesNow, gasUrl);
+        msg += '\nクラウド（スプレッドシートDB）への一括保存も完了しました！';
+      } catch (err) {
+        msg += '\n※クラウドへの保存中にエラーが発生しました。右上の「同期設定」から再度実行してください。';
+      }
+    }
+
     msg += '\n出店者一覧、ブース管理、消防安全、出店許可証に即時反映されています。';
     alert(msg);
   };
@@ -520,6 +671,25 @@ export function App() {
       setActiveTab('vendor');
     }
   }, [isAllEvent, activeTab]);
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-500">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full"></div>
+          <Sparkles className="w-12 h-12 text-amber-400 animate-pulse relative z-10" />
+        </div>
+        <div className="space-y-2 text-center">
+          <h2 className="text-xl font-bold text-white tracking-wider">
+            夜市出店者管理ポータル
+          </h2>
+          <p className="text-sm text-slate-400">
+            最新のデータを読み込んでいます...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-black">
@@ -616,6 +786,8 @@ export function App() {
             onDeleteEvent={handleDeleteEvent}
             onUpdateEntries={handleUpdateAllEntries}
             onNavigateTab={handleNavigateTab}
+            onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
+            onNotify={showToast}
           />
         )}
 
@@ -652,17 +824,19 @@ export function App() {
         />
       )}
 
-      {/* クラウド・データベース連携モーダル */}
-      <CloudSyncModal
+      {/* スプレッドシート連携モーダル */}
+      <GoogleSheetsSyncModal
         isOpen={isCloudSyncModalOpen}
         onClose={() => setIsCloudSyncModalOpen(false)}
         events={allEvents}
         vendors={vendors}
         entries={entries}
-        isSupabaseConnected={isSupabaseConnected}
-        onRefreshDataFromCloud={handleRefreshDataFromCloud}
-        onConnectionStatusChange={handleConnectionStatusChange}
         onVendorsLoaded={handleVendorsLoadedFromSheets}
+        onEventsLoaded={handleEventsLoadedFromSheets}
+        onEntriesLoaded={(loadedEntries) => {
+          setEntries(loadedEntries);
+          saveEntries(loadedEntries);
+        }}
         onSyncSuccess={() => {
           const config = getGasConfig();
           if (config.url) {
@@ -670,6 +844,32 @@ export function App() {
           }
         }}
       />
+
+      {/* トースト通知 (リアルタイムステータス表示) */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300 max-w-md">
+          <div
+            className={`p-4 rounded-2xl shadow-2xl border flex items-start gap-3 backdrop-blur-md ${
+              toast.type === 'success'
+                ? 'bg-slate-900/95 border-emerald-500/80 text-emerald-100 shadow-emerald-950/40'
+                : toast.type === 'error'
+                ? 'bg-slate-900/95 border-rose-500/80 text-rose-100 shadow-rose-950/40'
+                : 'bg-slate-900/95 border-amber-500/80 text-amber-100 shadow-amber-950/40'
+            }`}
+          >
+            <div className="shrink-0 mt-0.5">
+              {toast.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              ) : toast.type === 'error' ? (
+                <AlertTriangle className="w-5 h-5 text-rose-400" />
+              ) : (
+                <InfoIcon className="w-5 h-5 text-amber-400" />
+              )}
+            </div>
+            <div className="flex-1 text-xs font-bold leading-relaxed">{toast.message}</div>
+          </div>
+        </div>
+      )}
 
       {/* 管理者フッター */}
       <footer className="no-print border-t border-slate-800/80 bg-slate-900/40 py-6 text-center text-xs text-slate-400">

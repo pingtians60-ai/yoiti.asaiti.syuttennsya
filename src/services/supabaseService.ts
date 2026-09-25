@@ -61,7 +61,7 @@ function vendorToRow(vendor: Vendor) {
     blacklisted_at: vendor.blacklistedAt || null,
     tags: vendor.tags || [],
     internal_notes: vendor.internalNotes || null,
-    past_participation_count: Number(vendor.pastParticipationCount) || 0,
+
     past_events: vendor.pastEvents || [],
     created_at: vendor.createdAt || new Date().toISOString().split('T')[0],
     updated_at: new Date().toISOString()
@@ -93,7 +93,7 @@ function rowToVendor(row: any): Vendor {
     blacklistedAt: row.blacklisted_at || undefined,
     tags: Array.isArray(row.tags) ? row.tags : [],
     internalNotes: row.internal_notes || undefined,
-    pastParticipationCount: Number(row.past_participation_count) || 0,
+
     pastEvents: Array.isArray(row.past_events) ? row.past_events : [],
     createdAt: row.created_at || ''
   };

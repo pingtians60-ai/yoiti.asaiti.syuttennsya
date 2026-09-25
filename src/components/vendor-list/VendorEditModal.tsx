@@ -18,6 +18,7 @@ const categoryLabels: Record<string, string> = {
   food: '飲食露店',
   outdoor: '屋外出店（物販・体験）',
   wcp: 'WCP（出店料0円）',
+  adult_supporter: '大人サポーター',
   drink: '飲食露店',
   goods: '屋外出店（物販・体験）',
   game: '屋外出店（物販・体験）',
@@ -286,6 +287,8 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
                       ? 'food'
                       : formData.category === 'wcp'
                       ? 'wcp'
+                      : formData.category === 'adult_supporter'
+                      ? 'adult_supporter'
                       : 'outdoor'
                   }
                   onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
@@ -295,6 +298,7 @@ export const VendorEditModal: React.FC<VendorEditModalProps> = ({
                   <option value="food">飲食露店</option>
                   <option value="outdoor">屋外出店（物販・体験）</option>
                   <option value="wcp">WCP（出店料0円）</option>
+                  <option value="adult_supporter">大人サポーター</option>
                 </select>
                 {formData.category === 'wcp' && (
                   <p className="text-[11px] text-emerald-400 mt-1 font-medium flex items-center gap-1">

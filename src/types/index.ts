@@ -60,7 +60,7 @@ export interface VendorFee {
   invoiceNumber?: string;                // 請求書/領収書番号
 }
 
-export type VendorCategory = 'kitchen_car' | 'food' | 'outdoor' | 'drink' | 'goods' | 'game' | 'wcp' | 'other';
+export type VendorCategory = 'kitchen_car' | 'food' | 'outdoor' | 'drink' | 'goods' | 'game' | 'wcp' | 'adult_supporter' | 'other';
 
 export interface Vendor {
   id: string;
@@ -93,7 +93,7 @@ export interface Vendor {
   defaultTentOption?: boolean;           // テントレンタルの希望（1張 2,000円）
   defaultTentCount?: number;             // 希望テント張数
   internalNotes?: string;                // 運営用メモ
-  pastParticipationCount: number;        // 過去参加回数
+
   pastEvents: string[];                  // 過去参加したイベント名
   createdAt: string;
 }
@@ -131,6 +131,8 @@ export function getVendorCategoryLabel(category?: string): string {
     case 'drink':
     case 'food_stall':
       return '飲食露店';
+    case 'adult_supporter':
+      return '大人サポーター';
     case 'outdoor':
     case 'goods':
     case 'game':

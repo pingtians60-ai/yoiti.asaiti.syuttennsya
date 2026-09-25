@@ -1,19 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  AlertTriangle, 
-  ShieldAlert, 
-  ShieldCheck, 
-  FileSpreadsheet, 
-  Edit3, 
-  Trash2, 
-  History, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Utensils, 
+import {
+  Users,
+  Search,
+  Plus,
+  AlertTriangle,
+  ShieldAlert,
+  ShieldCheck,
+  FileSpreadsheet,
+  Edit3,
+  Trash2,
+  History,
+  Phone,
+  Mail,
+  MapPin,
+  Utensils,
   Store,
   Tag,
   Lock,
@@ -22,7 +22,7 @@ import {
   Eye,
   Flame,
   Award,
-  Download, 
+  Download,
   Printer,
   ExternalLink,
   Building2,
@@ -40,10 +40,10 @@ import {
 import { Vendor, VendorStatus, EventEntry, NightMarketEvent, isVendorOrganization, getVendorCategoryLabel, BoothArea } from '../../types';
 import { mergePdfDocuments, createSampleDocPdf, FileItemToMerge } from '../../utils/pdfMerger';
 import { Instagram, getInstagramUrl, getInstagramHandle, InstagramBadge } from '../../utils/instagram';
-import { 
-  getVendorReading, 
-  getKanaInitialGroup, 
-  sortVendorsByJapaneseAlphabet 
+import {
+  getVendorReading,
+  getKanaInitialGroup,
+  sortVendorsByJapaneseAlphabet
 } from '../../utils/aiNameReading';
 import { VendorDetailModal } from './VendorDetailModal';
 import { VendorEditModal } from './VendorEditModal';
@@ -65,10 +65,10 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
   onUpdateEntries,
   onOpenCloudSync
 }) => {
-  const isAllEvent = 
-    event.name === '夜市全体' || 
-    event.id === 'event-all' || 
-    event.name.includes('出店者募集中') || 
+  const isAllEvent =
+    event.name === '夜市全体' ||
+    event.id === 'event-all' ||
+    event.name.includes('出店者募集中') ||
     event.name.includes('募集中') ||
     event.name.trim() === '夜市' ||
     !event.date;
@@ -111,9 +111,9 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
       if (!confirmBanned) return;
     }
 
-    const assignedArea: BoothArea = 
-      vendor.category === 'kitchen_car' ? 'KITCHEN_CAR' : 
-      vendor.category === 'food' ? 'FOOD_STALL' : 'OUTDOOR';
+    const assignedArea: BoothArea =
+      vendor.category === 'kitchen_car' ? 'KITCHEN_CAR' :
+        vendor.category === 'food' ? 'FOOD_STALL' : 'OUTDOOR';
 
     const isWcp = vendor.category === 'wcp';
     const baseFee = isWcp ? 0 : 3000;
@@ -181,28 +181,28 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
   const filteredVendors = useMemo(() => {
     let result = vendors.filter((v) => {
       const reading = getVendorReading(v);
-      const matchesSearch = 
+      const matchesSearch =
         v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         v.ownerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         v.menuItems.toLowerCase().includes(searchTerm.toLowerCase()) ||
         reading.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (v.statusReason && v.statusReason.toLowerCase().includes(searchTerm.toLowerCase()));
-      
+
       const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
 
-      const normalizedCategory = 
+      const normalizedCategory =
         v.category === 'wcp' ? 'wcp' :
-        v.category === 'kitchen_car' ? 'kitchen_car' :
-        (v.category === 'food' || v.category === 'drink') ? 'food' : 'outdoor';
+          v.category === 'kitchen_car' ? 'kitchen_car' :
+            (v.category === 'food' || v.category === 'drink') ? 'food' : 'outdoor';
       const matchesCategory = categoryFilter === 'ALL' || normalizedCategory === categoryFilter || v.category === categoryFilter;
 
       const isOrg = isVendorOrganization(v);
-      const matchesType = 
-        typeFilter === 'ALL' || 
-        (typeFilter === 'organization' && isOrg) || 
+      const matchesType =
+        typeFilter === 'ALL' ||
+        (typeFilter === 'organization' && isOrg) ||
         (typeFilter === 'store' && !isOrg);
 
-      const matchesKanaRow = 
+      const matchesKanaRow =
         kanaRow === 'ALL' || getKanaInitialGroup(reading) === kanaRow;
 
       return matchesSearch && matchesStatus && matchesCategory && matchesType && matchesKanaRow;
@@ -386,11 +386,10 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setTypeFilter(typeFilter === 'organization' ? 'ALL' : 'organization')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border flex items-center gap-1.5 ${
-                typeFilter === 'organization'
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border flex items-center gap-1.5 ${typeFilter === 'organization'
                   ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30'
                   : 'bg-emerald-950/40 text-emerald-300 border-emerald-800 hover:bg-emerald-900/50'
-              }`}
+                }`}
               title="登録団体のみに絞り込み"
             >
               <Building2 className="w-3.5 h-3.5" />
@@ -398,21 +397,19 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
             </button>
             <button
               onClick={() => setStatusFilter(statusFilter === 'banned' ? 'ALL' : 'banned')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
-                statusFilter === 'banned'
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${statusFilter === 'banned'
                   ? 'bg-red-900/60 text-red-200 border-red-700 shadow-sm'
                   : 'bg-red-950/40 text-red-300 border-red-800/70 hover:bg-red-900/50'
-              }`}
+                }`}
             >
               出禁: {bannedCount}件
             </button>
             <button
               onClick={() => setStatusFilter(statusFilter === 'warning' ? 'ALL' : 'warning')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
-                statusFilter === 'warning'
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${statusFilter === 'warning'
                   ? 'bg-amber-900/60 text-amber-200 border-amber-700 shadow-sm'
                   : 'bg-amber-950/40 text-amber-300 border-amber-800/70 hover:bg-amber-900/50'
-              }`}
+                }`}
             >
               要注意: {warningCount}件
             </button>
@@ -421,11 +418,10 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
           {/* 削除ロック・保護スイッチ */}
           <button
             onClick={() => setIsDeleteUnlocked(!isDeleteUnlocked)}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border ${
-              isDeleteUnlocked
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border ${isDeleteUnlocked
                 ? 'bg-rose-950/80 text-rose-300 border-rose-600 animate-pulse'
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-            }`}
+              }`}
             title={isDeleteUnlocked ? "クリックして削除をロック（保護）" : "クリックして削除可能モードに切り替え"}
           >
             {isDeleteUnlocked ? (
@@ -502,17 +498,15 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
             <button
               type="button"
               onClick={() => setEntryScopeTab('entered')}
-              className={`flex-1 sm:flex-initial py-2 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 border ${
-                entryScopeTab === 'entered'
+              className={`flex-1 sm:flex-initial py-2 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 border ${entryScopeTab === 'entered'
                   ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400 shadow-md shadow-sky-900/40'
                   : 'bg-slate-850 hover:bg-slate-800 text-slate-300 border-slate-750'
-              }`}
+                }`}
             >
               <UserCheck className="w-4 h-4 text-sky-300" />
               <span>出店エントリー中</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
-                entryScopeTab === 'entered' ? 'bg-black/30 text-white' : 'bg-slate-800 text-sky-400 border border-slate-700'
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${entryScopeTab === 'entered' ? 'bg-black/30 text-white' : 'bg-slate-800 text-sky-400 border border-slate-700'
+                }`}>
                 {registeredCount}件
               </span>
             </button>
@@ -520,17 +514,15 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
             <button
               type="button"
               onClick={() => setEntryScopeTab('unentered')}
-              className={`flex-1 sm:flex-initial py-2 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 border ${
-                entryScopeTab === 'unentered'
+              className={`flex-1 sm:flex-initial py-2 px-4 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-2 border ${entryScopeTab === 'unentered'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 border-amber-400 shadow-md shadow-amber-900/40'
                   : 'bg-slate-850 hover:bg-slate-800 text-slate-300 border-slate-750'
-              }`}
+                }`}
             >
               <Users className="w-4 h-4 text-amber-400" />
               <span>未エントリー（過去出店者）</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
-                entryScopeTab === 'unentered' ? 'bg-black/30 text-slate-950' : 'bg-slate-800 text-amber-400 border border-slate-700'
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${entryScopeTab === 'unentered' ? 'bg-black/30 text-slate-950' : 'bg-slate-800 text-amber-400 border border-slate-700'
+                }`}>
                 {unenteredCount}件
               </span>
             </button>
@@ -538,11 +530,10 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
             <button
               type="button"
               onClick={() => setEntryScopeTab('ALL')}
-              className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 border ${
-                entryScopeTab === 'ALL'
+              className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 border ${entryScopeTab === 'ALL'
                   ? 'bg-slate-700 text-white border-slate-500 shadow-md'
                   : 'bg-slate-850 hover:bg-slate-800 text-slate-400 border-slate-750'
-              }`}
+                }`}
             >
               <span>全て ({vendors.length})</span>
             </button>
@@ -631,11 +622,10 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
               key={group}
               type="button"
               onClick={() => setKanaRow(group)}
-              className={`px-2 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap border ${
-                kanaRow === group
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap border ${kanaRow === group
                   ? 'bg-amber-400/20 text-amber-300 border-amber-400/50 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 bg-slate-800/60 border-slate-800 hover:bg-slate-800'
-              }`}
+                }`}
             >
               {group === 'ALL' ? 'すべて' : group.replace('行', '')}
             </button>
@@ -649,8 +639,8 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
           <Store className="w-12 h-12 text-slate-600 mx-auto" />
           <div className="space-y-1">
             <h4 className="text-base font-bold text-white">
-              {!isAllEvent 
-                ? `「${event.name}」に出店登録されている店舗・団体はありません` 
+              {!isAllEvent
+                ? `「${event.name}」に出店登録されている店舗・団体はありません`
                 : '出店者が見つかりませんでした'}
             </h4>
             <p className="text-xs text-slate-400 max-w-md mx-auto">
@@ -698,17 +688,16 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                     setSelectedVendorForDetail(vendor);
                     setDetailInitialTab('info');
                   }}
-                  className={`cursor-pointer rounded-2xl p-4 sm:p-5 border transition-all duration-200 flex flex-col justify-between shadow-sm relative overflow-hidden group/card hover:shadow-lg hover:-translate-y-0.5 ${
-                    isBanned
+                  className={`cursor-pointer rounded-2xl p-4 sm:p-5 border transition-all duration-200 flex flex-col justify-between shadow-sm relative overflow-hidden group/card hover:shadow-lg hover:-translate-y-0.5 ${isBanned
                       ? 'bg-slate-900 border-red-900/40 shadow-red-950/10 hover:border-red-750'
                       : isWarning
-                      ? 'bg-slate-900 border-amber-900/40 shadow-amber-950/10 hover:border-amber-750'
-                      : isRegistered
-                      ? 'bg-slate-900 border-slate-800 hover:border-slate-700 hover:bg-slate-850/80'
-                      : isOrg
-                      ? 'bg-slate-900 border-slate-800 hover:border-slate-700 hover:bg-slate-850/80'
-                      : 'bg-slate-900/90 border-slate-800 hover:border-slate-700 hover:bg-slate-850'
-                  }`}
+                        ? 'bg-slate-900 border-amber-900/40 shadow-amber-950/10 hover:border-amber-750'
+                        : isRegistered
+                          ? 'bg-slate-900 border-slate-800 hover:border-slate-700 hover:bg-slate-850/80'
+                          : isOrg
+                            ? 'bg-slate-900 border-slate-800 hover:border-slate-700 hover:bg-slate-850/80'
+                            : 'bg-slate-900/90 border-slate-800 hover:border-slate-700 hover:bg-slate-850'
+                    }`}
                   title="クリックして出店者の詳細（連絡先・営業許可証・消防・許可証）を表示"
                 >
                   <div className="space-y-3">
@@ -835,11 +824,10 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
                     {/* 出禁・要注意理由 */}
                     {(isBanned || isWarning) && (
                       <div
-                        className={`px-2.5 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${
-                          isBanned
+                        className={`px-2.5 py-1.5 rounded-lg text-xs border flex items-center gap-1.5 ${isBanned
                             ? 'bg-red-950/40 border-red-900/60 text-red-300'
                             : 'bg-amber-950/40 border-amber-900/60 text-amber-300'
-                        }`}
+                          }`}
                       >
                         <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
                         <span className="truncate text-[11px]">
@@ -1196,7 +1184,6 @@ export const VendorListView: React.FC<VendorListViewProps> = ({
             hasFoodLicense: true,
             status: 'active',
             tags: [],
-            pastParticipationCount: 0,
             pastEvents: [],
             createdAt: new Date().toISOString().split('T')[0]
           }}
@@ -1368,11 +1355,10 @@ const SelectPastVendorModal: React.FC<SelectPastVendorModalProps> = ({
                       onSelectVendor(vendor);
                       setAddedIds(prev => new Set([...prev, vendor.id]));
                     }}
-                    className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${
-                      isBanned
+                    className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${isBanned
                         ? 'bg-red-900/60 hover:bg-red-800 text-red-200 border border-red-700'
                         : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
-                    }`}
+                      }`}
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>このイベントに追加</span>

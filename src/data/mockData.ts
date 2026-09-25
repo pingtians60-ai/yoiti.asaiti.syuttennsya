@@ -1,4 +1,4 @@
-import { NightMarketEvent, Vendor, EventEntry } from '../types';
+﻿import { NightMarketEvent, Vendor, EventEntry } from '../types';
 
 export const initialEvent: NightMarketEvent = {
   id: 'event-tanabe-2026-10',
@@ -43,7 +43,7 @@ export const initialVendors: Vendor[] = [
     status: 'active',
     tags: ['常連優良店', '火気あり(炭火)', '人気店'],
     internalNotes: '毎回大盛況。消火器も新品持参で防火マナー完璧。',
-    pastParticipationCount: 8,
+
     pastEvents: ['第12回 たなべ夜市', '第13回 たなべ夜市', '第14回 たなべ夜市'],
     createdAt: '2024-04-01'
   },
@@ -65,7 +65,7 @@ export const initialVendors: Vendor[] = [
     status: 'active',
     tags: ['プロパンガス', '長机希望'],
     internalNotes: 'ガス器具の安全弁点検済み。対応良好。',
-    pastParticipationCount: 5,
+
     pastEvents: ['第11回 たなべ夜市', '第13回 たなべ夜市', '第14回 たなべ夜市'],
     createdAt: '2024-08-10'
   },
@@ -87,7 +87,7 @@ export const initialVendors: Vendor[] = [
     status: 'active',
     tags: ['キッチンカー', '電源必須(1500W)', '若者に大人気'],
     internalNotes: '女性・ファミリー層の集客力が高い。電源容量の確保必須。',
-    pastParticipationCount: 6,
+
     pastEvents: ['第10回 たなべ夜市', '第12回 たなべ夜市', '第14回 たなべ夜市'],
     createdAt: '2024-05-15'
   },
@@ -109,7 +109,7 @@ export const initialVendors: Vendor[] = [
     status: 'active',
     tags: ['火気なし', '電源使用(氷削機)'],
     internalNotes: '爽やかで好印象。ゴミ回収マナー良好。',
-    pastParticipationCount: 3,
+
     pastEvents: ['第13回 たなべ夜市', '第14回 たなべ夜市'],
     createdAt: '2025-06-01'
   },
@@ -129,7 +129,7 @@ export const initialVendors: Vendor[] = [
     status: 'active',
     tags: ['火気なし', '電源なし', 'クラフト'],
     internalNotes: 'ディスプレイが洗練されている。リピーター多数。',
-    pastParticipationCount: 4,
+
     pastEvents: ['第12回 たなべ夜市', '第13回 たなべ夜市', '第14回 たなべ夜市'],
     createdAt: '2024-10-10'
   },
@@ -149,7 +149,7 @@ export const initialVendors: Vendor[] = [
     organizationType: 'organization',
     tags: ['登録団体', '縁日', '子供向け', '角ブース希望'],
     internalNotes: '子供に大人気。列ができるため広めのスペース推奨。',
-    pastParticipationCount: 7,
+
     pastEvents: ['第9回 たなべ夜市', '第11回 たなべ夜市', '第13回 たなべ夜市'],
     createdAt: '2024-01-20'
   },
@@ -172,7 +172,7 @@ export const initialVendors: Vendor[] = [
     statusReason: '【要注意】前回搬入時に2時間の大幅遅刻。また指定分別ゴミ箱に油まみれのダンボールを詰め込み放置した履歴あり。今回は誓約書受領済み。',
     tags: ['【要注意】', '遅刻常習', 'ゴミ要確認', 'プロパンガス'],
     internalNotes: '味は美味しいが運営ルール順守に難あり。当日はスタッフがゴミ片付けを現地立会で確認すること。',
-    pastParticipationCount: 2,
+
     pastEvents: ['第13回 たなべ夜市', '第14回 たなべ夜市'],
     createdAt: '2025-07-01'
   },
@@ -193,7 +193,7 @@ export const initialVendors: Vendor[] = [
     blacklistedAt: '2025-08-20',
     tags: ['【永久出禁】', '危険物違反', '暴言トラブル', '環境汚染'],
     internalNotes: '絶対にエントリーを許可しないこと。代表者名や電話番号を変えて応募してくる可能性があるので要注意。',
-    pastParticipationCount: 1,
+
     pastEvents: ['第12回 たなべ夜市(出禁処分)'],
     createdAt: '2024-06-01'
   },
@@ -214,7 +214,7 @@ export const initialVendors: Vendor[] = [
     blacklistedAt: '2025-10-05',
     tags: ['【出禁】', '無断ドタキャン', '出店料未払い'],
     internalNotes: '他イベントでも同様のトラブルを起こしている報告あり。受付不可。',
-    pastParticipationCount: 2,
+
     pastEvents: ['第10回 たなべ夜市', '第11回 たなべ夜市(無断欠席)'],
     createdAt: '2024-03-10',
     organizationType: 'store'
@@ -236,7 +236,7 @@ export const initialVendors: Vendor[] = [
     status: 'active',
     tags: ['登録団体', '地域振興', '広報活動'],
     internalNotes: '地域密着の協力団体。夜市本部・安全見回り等にも協力いただいている。',
-    pastParticipationCount: 10,
+
     pastEvents: ['第12回 たなべ夜市', '第13回 たなべ夜市', '第14回 たなべ夜市'],
     createdAt: '2024-01-10'
   }

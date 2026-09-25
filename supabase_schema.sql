@@ -1,4 +1,4 @@
--- ==============================================================================
+﻿-- ==============================================================================
 -- 夜市出店者管理システム：Supabase用テーブル定義（SQL）
 -- Supabaseダッシュボードの「SQL Editor」に貼り付けて「RUN」を押すだけで完了します。
 -- ==============================================================================
@@ -749,7 +749,7 @@ INSERT INTO public.yoichi_entries (
   'entry-001',
   'event-tanabe-2026-10',
   'v-001',
-  $${"id":"v-001","name":"黒潮炭火焼き鳥 弁慶","readingFurigana":"べんけい","ownerName":"山本 健一","furigana":"ヤマモト ケンイチ","phone":"080-9876-1111","email":"benkei.yakitori@example.com","lineId":"benkei_yakitori","instagram":"@benkei_yakitori","address":"和歌山県田辺市新庄町1234","category":"food","menuItems":"紀州うめどり焼き鳥、牛串、つくね串、生ビール","hasFoodLicense":true,"foodLicenseNumber":"和歌保 第012345号","licenseExpiryDate":"2028-06-30","status":"active","tags":["常連優良店","火気あり(炭火)","人気店"],"internalNotes":"毎回大盛況。消火器も新品持参で防火マナー完璧。","pastParticipationCount":8,"pastEvents":["第12回 たなべ夜市","第13回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2024-04-01"}$$::jsonb,
+  $${"id":"v-001","name":"黒潮炭火焼き鳥 弁慶","readingFurigana":"べんけい","ownerName":"山本 健一","furigana":"ヤマモト ケンイチ","phone":"080-9876-1111","email":"benkei.yakitori@example.com","lineId":"benkei_yakitori","instagram":"@benkei_yakitori","address":"和歌山県田辺市新庄町1234","category":"food","menuItems":"紀州うめどり焼き鳥、牛串、つくね串、生ビール","hasFoodLicense":true,"foodLicenseNumber":"和歌保 第012345号","licenseExpiryDate":"2028-06-30","status":"active","tags":["常連優良店","火気あり(炭火)","人気店"],"internalNotes":"毎回大盛況。消火器も新品持参で防火マナー完璧。","pastEvents":["第12回 たなべ夜市","第13回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2024-04-01"}$$::jsonb,
   'FOOD_STALL',
   'A-01',
   $${"baseFee":8000,"powerOption":true,"powerFee":1000,"powerWatts":500,"garbageOption":true,"garbageFee":500,"equipmentRentalFee":1000,"discount":0,"totalAmount":11000,"paymentStatus":"paid","paidAt":"2026-09-10","receiptIssued":true,"invoiceNumber":"INV-2026-001"}$$::jsonb,
@@ -782,7 +782,7 @@ INSERT INTO public.yoichi_entries (
   'entry-002',
   'event-tanabe-2026-10',
   'v-002',
-  $${"id":"v-002","name":"極旨たこ焼き 蛸源","readingFurigana":"たこげん","ownerName":"田中 誠一郎","furigana":"タナカ セイイチロウ","phone":"090-3344-5566","email":"takogen.tanabe@example.com","instagram":"@takogen_tanabe","address":"和歌山県田辺市湊45-6","category":"food","menuItems":"大玉たこ焼き（ソース・醤油マヨ・ねぎ塩）、フランクフルト","hasFoodLicense":true,"foodLicenseNumber":"和歌保 第024680号","licenseExpiryDate":"2027-11-15","status":"active","tags":["プロパンガス","長机希望"],"internalNotes":"ガス器具の安全弁点検済み。対応良好。","pastParticipationCount":5,"pastEvents":["第11回 たなべ夜市","第13回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2024-08-10"}$$::jsonb,
+  $${"id":"v-002","name":"極旨たこ焼き 蛸源","readingFurigana":"たこげん","ownerName":"田中 誠一郎","furigana":"タナカ セイイチロウ","phone":"090-3344-5566","email":"takogen.tanabe@example.com","instagram":"@takogen_tanabe","address":"和歌山県田辺市湊45-6","category":"food","menuItems":"大玉たこ焼き（ソース・醤油マヨ・ねぎ塩）、フランクフルト","hasFoodLicense":true,"foodLicenseNumber":"和歌保 第024680号","licenseExpiryDate":"2027-11-15","status":"active","tags":["プロパンガス","長机希望"],"internalNotes":"ガス器具の安全弁点検済み。対応良好。","pastEvents":["第11回 たなべ夜市","第13回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2024-08-10"}$$::jsonb,
   'FOOD_STALL',
   'A-02',
   $${"baseFee":8000,"powerOption":false,"powerFee":0,"tentOption":true,"tentCount":1,"tentFee":2000,"garbageOption":true,"garbageFee":500,"equipmentRentalFee":1000,"discount":500,"totalAmount":11000,"paymentStatus":"paid","paidAt":"2026-09-11","receiptIssued":false,"invoiceNumber":"INV-2026-002"}$$::jsonb,
@@ -815,7 +815,7 @@ INSERT INTO public.yoichi_entries (
   'entry-003',
   'event-tanabe-2026-10',
   'v-003',
-  $${"id":"v-003","name":"Nanairo クレープ＆タピオカ","readingFurigana":"なないろ","ownerName":"佐々木 萌香","furigana":"ササキ モエカ","phone":"080-2211-9988","email":"info@nanairo-crepe.jp","instagram":"@nanairo_crepe","address":"和歌山県白浜町332","category":"kitchen_car","menuItems":"自家製モチモチクレープ、黒糖タピオカラテ、自家製レモネード","hasFoodLicense":true,"foodLicenseNumber":"和歌保 自動車 第9876号","licenseExpiryDate":"2029-03-31","status":"active","tags":["キッチンカー","電源必須(1500W)","若者に大人気"],"internalNotes":"女性・ファミリー層の集客力が高い。電源容量の確保必須。","pastParticipationCount":6,"pastEvents":["第10回 たなべ夜市","第12回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2024-05-15"}$$::jsonb,
+  $${"id":"v-003","name":"Nanairo クレープ＆タピオカ","readingFurigana":"なないろ","ownerName":"佐々木 萌香","furigana":"ササキ モエカ","phone":"080-2211-9988","email":"info@nanairo-crepe.jp","instagram":"@nanairo_crepe","address":"和歌山県白浜町332","category":"kitchen_car","menuItems":"自家製モチモチクレープ、黒糖タピオカラテ、自家製レモネード","hasFoodLicense":true,"foodLicenseNumber":"和歌保 自動車 第9876号","licenseExpiryDate":"2029-03-31","status":"active","tags":["キッチンカー","電源必須(1500W)","若者に大人気"],"internalNotes":"女性・ファミリー層の集客力が高い。電源容量の確保必須。","pastEvents":["第10回 たなべ夜市","第12回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2024-05-15"}$$::jsonb,
   'KITCHEN_CAR',
   'K-01',
   $${"baseFee":12000,"powerOption":true,"powerFee":1000,"powerWatts":1500,"garbageOption":true,"garbageFee":500,"equipmentRentalFee":0,"discount":0,"totalAmount":14500,"paymentStatus":"billed","receiptIssued":false,"invoiceNumber":"INV-2026-003"}$$::jsonb,
@@ -848,7 +848,7 @@ INSERT INTO public.yoichi_entries (
   'entry-004',
   'event-tanabe-2026-10',
   'v-004',
-  $${"id":"v-004","name":"南紀レモネード STAND","readingFurigana":"なんきれもねーど","ownerName":"林 翔太","furigana":"ハヤシ ショウタ","phone":"070-5555-1234","email":"hayashi@nanki-lemon.com","instagram":"https://www.instagram.com/nanki_lemonade/","address":"和歌山県田辺市上芳養10","category":"drink","menuItems":"地元産生搾りクラフトレモネード、レモンスカッシュ、かき氷","hasFoodLicense":true,"foodLicenseNumber":"和歌保 第055432号","licenseExpiryDate":"2028-09-20","status":"active","tags":["火気なし","電源使用(氷削機)"],"internalNotes":"爽やかで好印象。ゴミ回収マナー良好。","pastParticipationCount":3,"pastEvents":["第13回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2025-06-01"}$$::jsonb,
+  $${"id":"v-004","name":"南紀レモネード STAND","readingFurigana":"なんきれもねーど","ownerName":"林 翔太","furigana":"ハヤシ ショウタ","phone":"070-5555-1234","email":"hayashi@nanki-lemon.com","instagram":"https://www.instagram.com/nanki_lemonade/","address":"和歌山県田辺市上芳養10","category":"drink","menuItems":"地元産生搾りクラフトレモネード、レモンスカッシュ、かき氷","hasFoodLicense":true,"foodLicenseNumber":"和歌保 第055432号","licenseExpiryDate":"2028-09-20","status":"active","tags":["火気なし","電源使用(氷削機)"],"internalNotes":"爽やかで好印象。ゴミ回収マナー良好。","pastEvents":["第13回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2025-06-01"}$$::jsonb,
   'FOOD_STALL',
   'B-01',
   $${"baseFee":8000,"powerOption":true,"powerFee":1000,"powerWatts":800,"garbageOption":true,"garbageFee":500,"equipmentRentalFee":500,"discount":0,"totalAmount":10500,"paymentStatus":"paid","paidAt":"2026-09-07","receiptIssued":true,"invoiceNumber":"INV-2026-004"}$$::jsonb,
@@ -881,7 +881,7 @@ INSERT INTO public.yoichi_entries (
   'entry-005',
   'event-tanabe-2026-10',
   'v-005',
-  $${"id":"v-005","name":"Kishu Leather & Accessories","readingFurigana":"きしゅうれざー","ownerName":"中村 彩乃","furigana":"ナカムラ アヤノ","phone":"090-7766-3322","email":"nakamura@kishu-craft.com","instagram":"@kishu_leather","address":"和歌山県上富田町朝来888","category":"outdoor","menuItems":"本革ハンドメイドキーケース・財布、天然石アクセサリー","hasFoodLicense":false,"status":"active","tags":["火気なし","電源なし","クラフト"],"internalNotes":"ディスプレイが洗練されている。リピーター多数。","pastParticipationCount":4,"pastEvents":["第12回 たなべ夜市","第13回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2024-10-10"}$$::jsonb,
+  $${"id":"v-005","name":"Kishu Leather & Accessories","readingFurigana":"きしゅうれざー","ownerName":"中村 彩乃","furigana":"ナカムラ アヤノ","phone":"090-7766-3322","email":"nakamura@kishu-craft.com","instagram":"@kishu_leather","address":"和歌山県上富田町朝来888","category":"outdoor","menuItems":"本革ハンドメイドキーケース・財布、天然石アクセサリー","hasFoodLicense":false,"status":"active","tags":["火気なし","電源なし","クラフト"],"internalNotes":"ディスプレイが洗練されている。リピーター多数。","pastEvents":["第12回 たなべ夜市","第13回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2024-10-10"}$$::jsonb,
   'OUTDOOR',
   'C-01',
   $${"baseFee":5000,"powerOption":false,"powerFee":0,"garbageOption":false,"garbageFee":0,"equipmentRentalFee":500,"discount":0,"totalAmount":5500,"paymentStatus":"paid","paidAt":"2026-09-05","receiptIssued":true,"invoiceNumber":"INV-2026-005"}$$::jsonb,
@@ -914,7 +914,7 @@ INSERT INTO public.yoichi_entries (
   'entry-006',
   'event-tanabe-2026-10',
   'v-006',
-  $${"id":"v-006","name":"昔なつかし射的＆スーパーボールすくい","readingFurigana":"むかしなつかし","ownerName":"鈴木 辰男","furigana":"スズキ タツオ","phone":"090-4444-8888","email":"suzuki_ennichi@example.com","address":"和歌山県田辺市新万2-1","category":"outdoor","menuItems":"コルク銃射的、キャラクター人形すくい、光るおもちゃ","hasFoodLicense":false,"status":"active","organizationType":"organization","tags":["登録団体","縁日","子供向け","角ブース希望"],"internalNotes":"子供に大人気。列ができるため広めのスペース推奨。","pastParticipationCount":7,"pastEvents":["第9回 たなべ夜市","第11回 たなべ夜市","第13回 たなべ夜市"],"createdAt":"2024-01-20"}$$::jsonb,
+  $${"id":"v-006","name":"昔なつかし射的＆スーパーボールすくい","readingFurigana":"むかしなつかし","ownerName":"鈴木 辰男","furigana":"スズキ タツオ","phone":"090-4444-8888","email":"suzuki_ennichi@example.com","address":"和歌山県田辺市新万2-1","category":"outdoor","menuItems":"コルク銃射的、キャラクター人形すくい、光るおもちゃ","hasFoodLicense":false,"status":"active","organizationType":"organization","tags":["登録団体","縁日","子供向け","角ブース希望"],"internalNotes":"子供に大人気。列ができるため広めのスペース推奨。","pastEvents":["第9回 たなべ夜市","第11回 たなべ夜市","第13回 たなべ夜市"],"createdAt":"2024-01-20"}$$::jsonb,
   'OUTDOOR',
   'C-02',
   $${"baseFee":5000,"powerOption":false,"powerFee":0,"garbageOption":false,"garbageFee":0,"equipmentRentalFee":1500,"discount":0,"totalAmount":6500,"paymentStatus":"unbilled","receiptIssued":false,"invoiceNumber":"INV-2026-006"}$$::jsonb,
@@ -947,7 +947,7 @@ INSERT INTO public.yoichi_entries (
   'entry-007',
   'event-tanabe-2026-10',
   'v-007',
-  $${"id":"v-007","name":"アジアン屋台 ナマステ (要注意)","readingFurigana":"なますて","ownerName":"松田 洋介","furigana":"マツダ ヨウスケ","phone":"080-6677-8899","email":"matsuda@asian-curry.net","instagram":"@namaste_tanabe","address":"大阪府泉南市新家44","category":"food","menuItems":"タンドリーチキン、スパイスカレー、ナン、マンゴーラッシー","hasFoodLicense":true,"foodLicenseNumber":"泉州保 第33211号","licenseExpiryDate":"2026-12-10","status":"warning","statusReason":"【要注意】前回搬入時に2時間の大幅遅刻。また指定分別ゴミ箱に油まみれのダンボールを詰め込み放置した履歴あり。今回は誓約書受領済み。","tags":["【要注意】","遅刻常習","ゴミ要確認","プロパンガス"],"internalNotes":"味は美味しいが運営ルール順守に難あり。当日はスタッフがゴミ片付けを現地立会で確認すること。","pastParticipationCount":2,"pastEvents":["第13回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2025-07-01"}$$::jsonb,
+  $${"id":"v-007","name":"アジアン屋台 ナマステ (要注意)","readingFurigana":"なますて","ownerName":"松田 洋介","furigana":"マツダ ヨウスケ","phone":"080-6677-8899","email":"matsuda@asian-curry.net","instagram":"@namaste_tanabe","address":"大阪府泉南市新家44","category":"food","menuItems":"タンドリーチキン、スパイスカレー、ナン、マンゴーラッシー","hasFoodLicense":true,"foodLicenseNumber":"泉州保 第33211号","licenseExpiryDate":"2026-12-10","status":"warning","statusReason":"【要注意】前回搬入時に2時間の大幅遅刻。また指定分別ゴミ箱に油まみれのダンボールを詰め込み放置した履歴あり。今回は誓約書受領済み。","tags":["【要注意】","遅刻常習","ゴミ要確認","プロパンガス"],"internalNotes":"味は美味しいが運営ルール順守に難あり。当日はスタッフがゴミ片付けを現地立会で確認すること。","pastEvents":["第13回 たなべ夜市","第14回 たなべ夜市"],"createdAt":"2025-07-01"}$$::jsonb,
   'FOOD_STALL',
   'A-03',
   $${"baseFee":8000,"powerOption":false,"powerFee":0,"garbageOption":true,"garbageFee":1000,"equipmentRentalFee":1000,"discount":0,"totalAmount":10000,"paymentStatus":"unbilled","receiptIssued":false,"invoiceNumber":"INV-2026-007"}$$::jsonb,

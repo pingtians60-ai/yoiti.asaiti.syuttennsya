@@ -448,7 +448,7 @@ export function buildVendorsAndEntriesFromSheet(
       statusReason: matchedVendorIndex >= 0 ? (updatedVendors[matchedVendorIndex].statusReason || statusReason) : statusReason,
       tags: ['スプレッドシート連携', category === 'kitchen_car' ? 'キッチンカー' : '一般ブース'],
       internalNotes: notes,
-      pastParticipationCount: (matchedVendorIndex >= 0 ? updatedVendors[matchedVendorIndex].pastParticipationCount : 0) + 1,
+
       pastEvents: [event.name],
       createdAt: matchedVendorIndex >= 0 ? updatedVendors[matchedVendorIndex].createdAt : new Date().toISOString().split('T')[0]
     };

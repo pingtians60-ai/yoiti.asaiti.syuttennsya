@@ -21,13 +21,17 @@ import {
   DollarSign,
   Building2,
   Tent,
-  Zap
+  Zap,
+  FileSpreadsheet,
+  UploadCloud,
+  RefreshCw
 } from 'lucide-react';
 import { NightMarketEvent, EventEntry, Vendor, BoothArea, PaymentStatus, isVendorOrganization } from '../../types';
 import { STANDARD_AREAS } from '../../utils/storage';
 import { ActiveTab, VendorSubTab } from '../layout/Navigation';
 import { VendorDetailModal } from '../vendor-list/VendorDetailModal';
 import { InstagramBadge } from '../../utils/instagram';
+import { getGasConfig, pushEventsToGoogleSheets } from '../../services/googleSheetsDbService';
 
 interface CalendarViewProps {
   events: NightMarketEvent[];
@@ -40,6 +44,8 @@ interface CalendarViewProps {
   onDeleteEvent: (eventId: string) => void;
   onUpdateEntries: (entries: EventEntry[]) => void;
   onNavigateTab: (tab: ActiveTab | VendorSubTab, subTab?: VendorSubTab) => void;
+  onOpenCloudSync?: () => void;
+  onNotify?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 // カレンダーセル型定義
@@ -63,8 +69,41 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onUpdateEvent,
   onDeleteEvent,
   onUpdateEntries,
-  onNavigateTab
+  onNavigateTab,
+  onOpenCloudSync,
+  onNotify
 }) => {
+  // Googleスプレッドシート設定取得
+  const gasConfig = getGasConfig();
+  const isSheetConfigured = Boolean(gasConfig.url && gasConfig.url.trim());
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
+
+  // カレンダー全予定をスプレッドシートの「イベント管理」シートへ一括保存
+  const handleSyncAllToSheets = async () => {
+    if (!isSheetConfigured) {
+      if (onOpenCloudSync) {
+        onOpenCloudSync();
+      } else {
+        alert('Google Apps ScriptのWebアプリURLが設定されていません。連携設定から登録してください。');
+      }
+      return;
+    }
+
+    setIsSyncingAll(true);
+    try {
+      const res = await pushEventsToGoogleSheets(events);
+      if (res.success) {
+        onNotify?.(res.message || `スプレッドシートの「イベント管理」シートに全${events.length}件の予定を保存しました！`, 'success');
+      } else {
+        onNotify?.(res.message || 'スプレッドシートへの保存に失敗しました。', 'error');
+      }
+    } catch (e: any) {
+      onNotify?.(`保存エラー: ${e.message || '通信に失敗しました'}`, 'error');
+    } finally {
+      setIsSyncingAll(false);
+    }
+  };
+
   // カレンダー表示用の年月ステート（初期値は選択中イベントの年月、または今月）
   const initialDate = selectedEvent?.date ? new Date(selectedEvent.date) : new Date();
   const [currentYear, setCurrentYear] = useState(
@@ -260,12 +299,61 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               </span>
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              カレンダーから日程確認・イベント切替・出店者の直接確認・編集・削除が行えます
+              カレンダーの日程をクリックして予定を追加・編集できます（スプレッドシートの「イベント管理」シートへ自動反映）
             </p>
           </div>
         </div>
 
+        {/* バナー右側アクションボタン群 */}
+        <div className="flex items-center flex-wrap gap-2.5">
+          {/* Googleスプレッドシート連携ステータスバッジ */}
+          <button
+            onClick={onOpenCloudSync}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition ${
+              isSheetConfigured && gasConfig.autoSync
+                ? 'bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border-emerald-800'
+                : 'bg-amber-950/60 hover:bg-amber-900/60 text-amber-300 border-amber-800/80'
+            }`}
+            title="クリックしてGoogleスプレッドシート連携設定を開く"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>
+              {isSheetConfigured && gasConfig.autoSync
+                ? 'イベント管理シート自動同期中'
+                : 'スプレッドシート未設定'}
+            </span>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isSheetConfigured && gasConfig.autoSync
+                  ? 'bg-emerald-400 animate-pulse'
+                  : 'bg-amber-400'
+              }`}
+            />
+          </button>
 
+          {/* イベント管理シートへ一括同期ボタン */}
+          <button
+            onClick={handleSyncAllToSheets}
+            disabled={isSyncingAll}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-bold border border-slate-700 transition shadow-sm"
+            title="現在の全イベント情報をGoogleスプレッドシートの「イベント管理」シートに保存"
+          >
+            <UploadCloud className={`w-3.5 h-3.5 text-amber-400 ${isSyncingAll ? 'animate-bounce' : ''}`} />
+            <span>{isSyncingAll ? 'シートへ保存中...' : 'シートへ全予定を一括保存'}</span>
+          </button>
+
+          {/* 新規イベント作成ボタン */}
+          <button
+            onClick={() => {
+              setPrefilledDate(new Date().toISOString().split('T')[0]);
+              setIsCreateModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black shadow-md shadow-amber-500/20 transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>新規予定・イベント作成</span>
+          </button>
+        </div>
       </div>
 
       {/* カレンダーコントロールバー & グリッド */}

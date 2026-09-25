@@ -4,12 +4,8 @@ const STORAGE_KEY_URL = 'yoichi_supabase_project_url';
 const STORAGE_KEY_ANON_KEY = 'yoichi_supabase_anon_key';
 
 // デフォルト設定（環境変数または既知のWCPプロジェクト設定）
-export const DEFAULT_SUPABASE_URL = 
-  import.meta.env.VITE_SUPABASE_URL || 'https://ouflqodgegugznmmlkpt.supabase.co';
-
-export const DEFAULT_SUPABASE_ANON_KEY = 
-  import.meta.env.VITE_SUPABASE_ANON_KEY || 
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91Zmxxb2RnZWd1Z3pubW1sa3B0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMjQ5MTIsImV4cCI6MjEwMzcwMDkxMn0.AEYIdOA70I_sn7mnvRROh3S8uTSnMAgiMGpoH2bxl3o';
+export const DEFAULT_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+export const DEFAULT_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 let cachedClient: SupabaseClient | null = null;
 let currentClientConfig = { url: '', key: '' };
