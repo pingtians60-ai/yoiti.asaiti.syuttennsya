@@ -44,7 +44,6 @@ interface CalendarViewProps {
   onDeleteEvent: (eventId: string) => void;
   onUpdateEntries: (entries: EventEntry[]) => void;
   onNavigateTab: (tab: ActiveTab | VendorSubTab, subTab?: VendorSubTab) => void;
-  onOpenCloudSync?: () => void;
   onNotify?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
@@ -70,7 +69,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onDeleteEvent,
   onUpdateEntries,
   onNavigateTab,
-  onOpenCloudSync,
   onNotify
 }) => {
   // Googleスプレッドシート設定取得
@@ -81,11 +79,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // カレンダー全予定をスプレッドシートの「イベント管理」シートへ一括保存
   const handleSyncAllToSheets = async () => {
     if (!isSheetConfigured) {
-      if (onOpenCloudSync) {
-        onOpenCloudSync();
-      } else {
-        alert('Google Apps ScriptのWebアプリURLが設定されていません。連携設定から登録してください。');
-      }
+      alert('Google Apps ScriptのWebアプリURLが設定されていません。連携設定から登録してください。');
       return;
     }
 
@@ -306,30 +300,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         {/* バナー右側アクションボタン群 */}
         <div className="flex items-center flex-wrap gap-2.5">
-          {/* Googleスプレッドシート連携ステータスバッジ */}
-          <button
-            onClick={onOpenCloudSync}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition ${
-              isSheetConfigured && gasConfig.autoSync
-                ? 'bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border-emerald-800'
-                : 'bg-amber-950/60 hover:bg-amber-900/60 text-amber-300 border-amber-800/80'
-            }`}
-            title="クリックしてGoogleスプレッドシート連携設定を開く"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>
-              {isSheetConfigured && gasConfig.autoSync
-                ? 'イベント管理シート自動同期中'
-                : 'スプレッドシート未設定'}
-            </span>
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isSheetConfigured && gasConfig.autoSync
-                  ? 'bg-emerald-400 animate-pulse'
-                  : 'bg-amber-400'
-              }`}
-            />
-          </button>
+
 
           {/* イベント管理シートへ一括同期ボタン */}
           <button

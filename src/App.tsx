@@ -87,7 +87,6 @@ export function App() {
   const [entries, setEntries] = useState<EventEntry[]>(loadEntries);
 
   // クラウド連携モーダル（Supabase / Google Sheets共通）
-  const [isCloudSyncModalOpen, setIsCloudSyncModalOpen] = useState(false);
 
   // Supabaseクラウド連携ステート
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
@@ -701,7 +700,6 @@ export function App() {
         onUpdateEvent={handleUpdateEvent}
         onImportData={handleImportData}
         onOpenSpreadsheetImport={() => setIsSpreadsheetModalOpen(true)}
-        onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
         isGoogleSheetsConnected={isGoogleSheetsConnected}
         isSupabaseConnected={isSupabaseConnected}
         onNavigateToDashboard={() => {
@@ -786,7 +784,6 @@ export function App() {
             onDeleteEvent={handleDeleteEvent}
             onUpdateEntries={handleUpdateAllEntries}
             onNavigateTab={handleNavigateTab}
-            onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
             onNotify={showToast}
           />
         )}
@@ -808,7 +805,6 @@ export function App() {
             vendors={vendors}
             onUpdateEntries={handleUpdateCurrentEventEntries}
             onUpdateVendors={handleUpdateVendors}
-            onOpenCloudSync={() => setIsCloudSyncModalOpen(true)}
           />
         )}
       </main>
@@ -823,27 +819,6 @@ export function App() {
           onImport={handleSpreadsheetImport}
         />
       )}
-
-      {/* スプレッドシート連携モーダル */}
-      <GoogleSheetsSyncModal
-        isOpen={isCloudSyncModalOpen}
-        onClose={() => setIsCloudSyncModalOpen(false)}
-        events={allEvents}
-        vendors={vendors}
-        entries={entries}
-        onVendorsLoaded={handleVendorsLoadedFromSheets}
-        onEventsLoaded={handleEventsLoadedFromSheets}
-        onEntriesLoaded={(loadedEntries) => {
-          setEntries(loadedEntries);
-          saveEntries(loadedEntries);
-        }}
-        onSyncSuccess={() => {
-          const config = getGasConfig();
-          if (config.url) {
-            testGasConnection(config.url).then((res) => setIsGoogleSheetsConnected(res.success));
-          }
-        }}
-      />
 
       {/* トースト通知 (リアルタイムステータス表示) */}
       {toast && (
